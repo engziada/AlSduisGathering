@@ -4,7 +4,7 @@ from wtforms import StringField, SubmitField, SelectField, TextAreaField, valida
 import secrets
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw, ImageFont
-import io
+import io, os
 
 app = Flask(__name__)
 
@@ -123,8 +123,10 @@ def create_image(content):
     bottom_stripe_color=(88, 88, 86)
     font_size = 36
 
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    font_file_path = os.path.join(static_dir, "fonts", "Cairo-Bold.ttf")
     # Set the font and font size (you may need to download and specify an Arabic font)
-    font = ImageFont.truetype('\\static\\fonts\\Cairo-Bold.ttf', size=font_size)
+    font = ImageFont.truetype(font_file_path, size=font_size)
 
     # Split content into lines
     lines = content.split('\n')
