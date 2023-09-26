@@ -1,0 +1,96 @@
+{% extends 'master.html' %}
+
+{% block content %}
+<div class="container">
+    <form method="POST" action="/register/{{ phone_number }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.phone_number.label }}
+            {{ form.phone_number(class="form-control", disabled="disabled") }}
+        </div>
+        <div class="form-group">
+            {{ form.first_name.label(class="mandatory") }}
+            {{ form.first_name(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.family_name.label(class="mandatory") }}
+            {{ form.family_name(class="form-control", id="family_name", required="required") }}
+        </div>
+        <div class="non_family_box" id="custom_family_name_div">
+            <div class="form-group">
+                {{ form.custom_family_name.label(class="mandatory") }}
+                {{ form.custom_family_name(class="form-control", id="custom_family_name", required="") }}
+            </div>
+            <div class="form-group">
+                {{ form.relation.label(class="mandatory") }}
+                {{ form.relation(class="form-control", id="relation", required="") }}
+            </div>    
+        </div>
+        <div class="form-group">
+            {{ form.father_name.label(class="mandatory") }}
+            {{ form.father_name(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.first_grand_name.label(class="mandatory") }}
+            {{ form.first_grand_name(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.second_grand_name.label(class="mandatory") }}
+            {{ form.second_grand_name(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.third_grand_name.label (class="mandatory")}}
+            {{ form.third_grand_name(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.age.label (class="mandatory")}}
+            {{ form.age(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.gender.label(class="mandatory") }}
+            {{ form.gender(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.city.label(class="mandatory") }}
+            {{ form.city(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.attendance.label(class="mandatory") }}
+            {{ form.attendance(class="form-control", required="required") }}
+        </div>
+        <div class="form-group">
+            {{ form.ideas.label }}
+            {{ form.ideas(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function() {
+        var familyNameField = document.getElementById('family_name');
+        var customFamilyNameField = document.getElementById('custom_family_name');
+        var relationField = document.getElementById('relation');
+        var customFamilyNameDiv = document.getElementById('custom_family_name_div');
+        var keep='{{keep}}';
+        
+        if (keep==='True') {
+            customFamilyNameDiv.style.display = 'block';
+        }
+
+        familyNameField.addEventListener('change', function() {
+            if (familyNameField.value === 'أخرى') {
+            customFamilyNameDiv.style.display = 'block';
+            customFamilyNameField.setAttribute('required', 'required');
+            relationField.setAttribute('required', 'required');
+            } else {
+                customFamilyNameDiv.style.display = 'none';
+                customFamilyNameField.removeAttribute('required');
+                relationField.removeAttribute('required');
+            }
+        });
+    })();
+    </script>
+{% endblock %}

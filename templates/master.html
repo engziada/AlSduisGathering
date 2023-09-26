@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التجمع السنوي لأسرة السديس</title>
+
+    <!-- Add Bootstrap CSS from a CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/bootstrap-rtl.min.css')}}">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/mystyle.css') }}">
+
+    <!-- Add Font Awesome icons (Bootstrap does not include any by default) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet"> -->
+    <link href="https://fonts.googleapis.com/css2?family=Droid+Arabic+Kufi&display=swap" rel="stylesheet">
+
+    <!-- Add Bootstrap JavaScript (jQuery and Popper.js are required) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container">
+                {% for category, message in messages %}
+                    <div class="alert {% if category == 'error' %}alert-danger{% elif category == 'warning' %}alert-warning{% elif category == 'info' %}alert-info{% elif category == 'success' %}alert-success{% endif %}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+</head>
+<body>
+    <div class="header">
+        <img src="/static/header.jpg" alt="Header Image">
+        <div class="welcome-message">
+        تسجيل الحضور والسحب على هدايا اللقاء السنوي 23 لأسرة السديس
+        </div>
+        <div class="text-center">ببالغ السرور يسرنا دعوتكم للاجتماع السنوي لأسرة السديس</div>
+        <div class="text-center">والذي سيقام بمشيئة الله في مدينة الرياض</div>
+        <div class="text-center">يوم الجمعة 27-06-1444هـ الموافق 20-01-2023م في تمام الساعة 7:00 مساءً </div>
+    </div>
+
+    <div class="content">
+        <!-- Content from child templates will be inserted here -->
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>
