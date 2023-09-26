@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
-import sqlite3
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField, validators, ValidationError
 import secrets
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont
 import io
 
 app = Flask(__name__)
@@ -51,7 +50,7 @@ def validate_non_family_name(form, field):
   if form.family_name.data == 'أخرى':
     if not field.data:
       raise ValidationError('من فضلك أدخل البيان المطلوب')
-      
+
 # Model for the registration form
 class RegistrationForm(FlaskForm):
     phone_number = StringField('رقم الهاتف الجوال', validators=[validators.DataRequired()])
@@ -125,7 +124,7 @@ def create_image(content):
     font_size = 36
 
     # Set the font and font size (you may need to download and specify an Arabic font)
-    font = ImageFont.truetype('static\\fonts\\cairo-bold.ttf', size=font_size)
+    font = ImageFont.truetype('\\static\\fonts\\Cairo-Bold.ttf', size=font_size)
 
     # Split content into lines
     lines = content.split('\n')
@@ -192,10 +191,11 @@ def register(phone_number):
     # Create the form instance and load data if it exists
     form = RegistrationForm(obj=existing_registration)
     form.phone_number.data = phone_number
-    if existing_registration.family_name not in ('أخرى','السديس'):
-        keep=True
-        form.custom_family_name.data = existing_registration.family_name
-        form.family_name.data = 'أخرى'
+    if existing_registration:
+        if existing_registration.family_name not in ('أخرى','السديس'):
+            keep=True
+            form.custom_family_name.data = existing_registration.family_name
+            form.family_name.data = 'أخرى'
     if request.method == 'POST':
         if form.validate_on_submit():
             if existing_registration:
