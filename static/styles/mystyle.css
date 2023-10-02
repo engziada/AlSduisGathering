@@ -1,24 +1,24 @@
 @font-face {
-    font-family: 'cairo-regular';
-    src: url('/static/fonts/cairo-regular.ttf') format('truetype');
+    font-family: 'Cairo-Regular';
+    src: url('/static/fonts/Cairo-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 
 /* Define the custom font family for bold style */
 @font-face {
-    font-family: 'cairo-bold';
-    src: url('/static/fonts/cairo-bold.ttf') format('truetype');
+    font-family: 'Cairo-Bold';
+    src: url('/static/fonts/Cairo-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }
 
 * {
-    font-family: 'cairo-regular', sans-serif;
+    font-family: 'Cairo-Regular', sans-serif;
 }
 
 body {
-    font-family: 'cairo-regular', sans-serif;
+    font-family: 'Cairo-Regular', sans-serif;
     background-color: whitesmoke;
     color: #085E9D;
     font-family: Arial, sans-serif;

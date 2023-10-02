@@ -1,10 +1,29 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, TextAreaField, validators, ValidationError
-import secrets
-from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageDraw, ImageFont
 import io
+import os
+import secrets
+import pandas as pd
+
+from flask import (
+    Flask,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from PIL import Image, ImageDraw, ImageFont
+from wtforms import (
+    SelectField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+    ValidationError,
+    validators,
+)
 
 app = Flask(__name__)
 
@@ -47,8 +66,7 @@ with app.app_context():
 # ==============================================================================
 
 def validate_non_family_name(form, field):
-  if form.family_name.data == 'أخرى':
-    if not field.data:
+  if form.family_name.data == 'أخرى' and not field.data:
       raise ValidationError('من فضلك أدخل البيان المطلوب')
 
 # Model for the registration form
@@ -86,10 +104,11 @@ def is_registered(phone_number):
 
 
 def get_user_data(phone_number):
-    # Fetch user data based on the phone number from the database
-    user = Registration.query.filter_by(phone_number=phone_number).first()
-    if user:
-        return {
+  if not phone_number:
+    users = Registration.query.all()
+    users_data=[]
+    for user in users:
+      user_data = {
             'phone_number': user.phone_number,
             'first_name': user.first_name,
             'family_name': user.family_name,
@@ -105,8 +124,29 @@ def get_user_data(phone_number):
             'ideas': user.ideas,
             'registration_number': user.registration_number
         }
+      users_data.append(user_data)
+    return users_data
+  else:
+    user=Registration.query.filter_by(phone_number=phone_number).first()
+    if user:
+      return {
+          'phone_number': user.phone_number,
+          'first_name': user.first_name,
+          'family_name': user.family_name,
+          'father_name': user.father_name,
+          'first_grand_name': user.first_grand_name,
+          'second_grand_name': user.second_grand_name,
+          'third_grand_name': user.third_grand_name,
+          'relation': user.relation,
+          'age': user.age,
+          'gender': user.gender,
+          'city': user.city,
+          'attendance': user.attendance,
+          'ideas': user.ideas,
+          'registration_number': user.registration_number
+      }
     else:
-        return {}
+      return {}
 
 
 def create_image(content):
@@ -123,8 +163,10 @@ def create_image(content):
     bottom_stripe_color=(88, 88, 86)
     font_size = 36
 
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    font_file_path = os.path.join(static_dir, "fonts", "Cairo-Bold.ttf")
     # Set the font and font size (you may need to download and specify an Arabic font)
-    font = ImageFont.truetype('\\static\\fonts\\Cairo-Bold.ttf', size=font_size)
+    font = ImageFont.truetype(font_file_path, size=font_size)
 
     # Split content into lines
     lines = content.split('\n')
@@ -165,6 +207,7 @@ def create_image(content):
     # draw.text((x, y), content, fill='black', font=font)
     return image
 
+
 # ==============================================================================
 # ''' Routes '''
 # ==============================================================================
@@ -184,6 +227,30 @@ def index():
     return render_template('index.html', form=form)  # Pass the form instance to the template
 
 
+# Route for the admin page
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Number of logs per page
+
+    guests=Registration.query.paginate(page=page, per_page=per_page)
+    return render_template('admin.html', guests=guests)
+
+
+# Delete Guest
+@app.route('/delete_guest/<string:guest_phoneno>', methods=['GET', 'POST'])
+def delete_guest(guest_phoneno):
+    try:
+        guest = Registration.query.filter_by(phone_number=guest_phoneno).first()
+        db.session.delete(guest)
+        db.session.commit()
+        flash('تم حذف بيانات الضيف بنجاح', 'success')
+        return redirect(url_for('admin'))
+    except:
+        flash('فشلت عملية الحذف', 'danger')
+        return redirect(url_for('admin'))
+  
+
 # Route for the registration form
 @app.route('/register/<phone_number>', methods=['POST', 'GET'])
 def register(phone_number):
@@ -193,7 +260,6 @@ def register(phone_number):
     form.phone_number.data = phone_number
     if existing_registration:
         if existing_registration.family_name not in ('أخرى','السديس'):
-            keep=True
             form.custom_family_name.data = existing_registration.family_name
             form.family_name.data = 'أخرى'
     if request.method == 'POST':
@@ -201,6 +267,7 @@ def register(phone_number):
             if existing_registration:
                 # Update the existing registration with form data
                 form.populate_obj(existing_registration)
+                db.session.commit()
             else:
                 new_registration = Registration()
                 form.populate_obj(new_registration)
@@ -211,11 +278,8 @@ def register(phone_number):
                 new_registration.phone_number = phone_number
                 new_registration.registration_number = generate_registration_number()
                 db.session.add(new_registration)
-            # Add the new registration to the database
-            db.session.add(new_registration)
-            db.session.commit()
-            # Flash a success message
-            flash('تم التسجيل بنجاح', 'success')
+                db.session.commit()
+                flash('تم التسجيل بنجاح', 'success')
             # Redirect to a success page or the landing page
             return redirect(url_for('registered', phone_number=phone_number))
         else:
@@ -263,6 +327,18 @@ def convert_to_image():
     return Response(image_stream, content_type='image/png')
 
 
+@app.route('/export_to_excel')
+def export_to_excel():
+    items = get_user_data(None)
+    if not items:
+        return None
+
+    df = pd.DataFrame(items)
+    excel_file_path = 'registeration.xlsx'
+    df.to_excel(excel_file_path, index=False)
+    return send_file(excel_file_path, as_attachment=True)
+ 
+
 # ==============================================================================
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
