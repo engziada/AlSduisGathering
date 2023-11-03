@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, TextAreaField, validators, ValidationError
-import secrets
-from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageDraw, ImageFont
-import io, os
-=======
 import io
 import os
 import secrets
@@ -33,15 +24,15 @@ from wtforms import (
     ValidationError,
     validators,
 )
->>>>>>> 5736379cd2ba25e4403c79a278655f15641576d7
+from wtforms.validators import DataRequired
 
+
+# ==============================================================================
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///registrations.db'
 db = SQLAlchemy(app)
-# app.config['DATABASE'] = 'database.db'
 app.secret_key = secrets.token_hex(16)  # Generates a 32-character (16 bytes) hexadecimal key
-
 
 
 # ==============================================================================
@@ -65,6 +56,23 @@ class Registration(db.Model):
     attendance = db.Column(db.Text)
     ideas = db.Column(db.Text)
     registration_number = db.Column(db.Text)
+
+
+# Define the Prize model
+class Prize(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    guest_registration_number = db.Column(db.String(3), unique=True)
+
+    def __init__(self, name, description=None, guest_registration_number=None):
+        self.name = name
+        self.description = description
+        self.guest_registration_number = guest_registration_number
+
+# ==============================================================================
+#   
+# ==============================================================================
 
 # Create the database and tables if they don't exist
 with app.app_context():
@@ -98,6 +106,18 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('تسجيل')
 
 
+# Form for adding a new prize
+class AddPrizeForm(FlaskForm):
+    name = StringField('إسم الهدية', validators=[DataRequired()])
+    description = TextAreaField('الوصف')
+    # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
+
+
+# Form for editing an existing prize
+class EditPrizeForm(FlaskForm):
+    name = StringField('إسم الهدية', validators=[DataRequired()])
+    description = TextAreaField('الوصف')
+    # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
 
 # ==============================================================================
 # ''' Helper Functions '''
@@ -348,6 +368,59 @@ def export_to_excel():
     df.to_excel(excel_file_path, index=False)
     return send_file(excel_file_path, as_attachment=True)
  
+# ------------------------------------------------------------------------------
+# ''' Prizes Routes '''
+# ------------------------------------------------------------------------------
+
+# Create route for displaying a list of prizes
+@app.route('/prizes', methods=['GET'])
+def list_prizes():
+    prizes = Prize.query.all()
+    return render_template('prizes.html', prizes=prizes)
+
+# Create route for adding a new prize
+@app.route('/prizes/add', methods=['GET', 'POST'])
+def add_prize():
+    form = AddPrizeForm()
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+
+        prize = Prize(name=name, description=description)
+        db.session.add(prize)
+        db.session.commit()
+
+        flash('Prize added successfully!', 'success')
+        return redirect(url_for('list_prizes'))
+
+    return render_template('add_prize.html',form=form)
+
+# Create route for editing a prize
+@app.route('/prizes/edit/<int:id>', methods=['GET', 'POST'])
+def edit_prize(id):
+    prize = Prize.query.get(id)
+    form = EditPrizeForm(obj=prize)
+
+    if request.method == 'POST':
+        prize.name = request.form['name']
+        prize.description = request.form['description']
+        db.session.commit()
+
+        flash('Prize updated successfully!', 'success')
+        return redirect(url_for('list_prizes'))
+
+    return render_template('edit_prize.html',form=form, prize=prize)
+
+# Create route for deleting a prize
+@app.route('/prizes/delete/<int:id>', methods=['POST'])
+def delete_prize(id):
+    prize = Prize.query.get(id)
+    db.session.delete(prize)
+    db.session.commit()
+
+    flash('Prize deleted successfully!', 'success')
+    return redirect(url_for('list_prizes'))
+
 
 # ==============================================================================
 if __name__ == '__main__':
