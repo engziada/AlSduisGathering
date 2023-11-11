@@ -1,0 +1,45 @@
+{% extends 'master.html' %}
+
+{% block title %}QR Code Scanner{% endblock %}
+
+{% block content %}
+<div id="main">
+	<div id="mainbody">
+		<table class="tsel" border="0" width="100%">
+			<tr>
+				<td valign="top" align="center" width="50%">
+					<table class="tsel" border="0">
+						<tr>
+							<td align="center">
+							<a href="#" id="webcamimg" onclick="setwebcam()"><span class="material-symbols-outlined" >videocam</span></a>
+							</td>
+							<td align="center">
+								<a href="#" id="qrimg" onclick="setimg()"><span class="material-symbols-outlined" >image</span></a>
+							</td>	
+						</tr>
+						<tr>
+							<td colspan="2" align="center">
+								<div id="outdiv">
+								</div>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" align="center">
+					<div id="result"></div>
+				</td>
+			</tr>
+		</table>
+
+		<canvas id="qr-canvas" style="display: none;"></canvas>
+
+		{% endblock %}
+
+		{% block scripts%}
+		<script type="text/javascript" src="{{ url_for('static', filename='scripts/llqrcode.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='scripts/webqr.js') }}"></script>
+
+		<script type="text/javascript">load();</script>
+		{% endblock %}

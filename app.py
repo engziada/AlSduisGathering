@@ -2,6 +2,7 @@ import io
 import os
 import secrets
 import pandas as pd
+import random
 
 from flask import (
     Flask,
@@ -12,10 +13,15 @@ from flask import (
     request,
     send_file,
     url_for,
+    jsonify
 )
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from PIL import Image, ImageDraw, ImageFont
+from sqlalchemy import func
+from flask_migrate import Migrate  # Import Flask-Migrate
+from flask_cors import CORS
+
 from wtforms import (
     SelectField,
     StringField,
@@ -26,6 +32,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired
 
+from faker import Faker
 
 # ==============================================================================
 app = Flask(__name__)
@@ -33,7 +40,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///registrations.db'
 db = SQLAlchemy(app)
 app.secret_key = secrets.token_hex(16)  # Generates a 32-character (16 bytes) hexadecimal key
+migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
+fake = Faker()
+CORS(app)
 
 # ==============================================================================
 # ''' Models '''
@@ -56,6 +66,7 @@ class Registration(db.Model):
     attendance = db.Column(db.Text)
     ideas = db.Column(db.Text)
     registration_number = db.Column(db.Text)
+    prize_id = db.Column(db.Integer, db.ForeignKey('prize.id'))
 
 
 # Define the Prize model
@@ -71,13 +82,36 @@ class Prize(db.Model):
         self.guest_registration_number = guest_registration_number
 
 # ==============================================================================
-#   
+#   ''' Database and Tables '''
 # ==============================================================================
 
 # Create the database and tables if they don't exist
 with app.app_context():
     db.create_all()
 
+    # Loop to create 50 fake records
+    for _ in range(50):
+        record = Registration(
+            phone_number=fake.phone_number(),
+            first_name=fake.first_name(),
+            family_name=fake.last_name(),
+            father_name=fake.last_name(),
+            first_grand_name=fake.last_name(),
+            second_grand_name=fake.last_name(),
+            third_grand_name=fake.last_name(),
+            relation=fake.word(),
+            age=str(fake.random_int(18, 80)),  # Assuming age between 18 and 80
+            gender=fake.random_element(["Male", "Female"]),
+            city=fake.city(),
+            attendance=fake.random_element(["Yes", "No"]),
+            ideas=fake.text(),
+            registration_number=str(fake.random_int(100, 999))  # Unique 3-digit registration number
+            # Add prize_id if needed
+        )
+        db.session.add(record)
+
+    # Commit the changes
+    db.session.commit()
 
 # ==============================================================================
 # ''' Forms '''
@@ -368,6 +402,12 @@ def export_to_excel():
     df.to_excel(excel_file_path, index=False)
     return send_file(excel_file_path, as_attachment=True)
  
+
+# Route for the home page
+@app.route('/qr', methods=['GET', 'POST'])
+def qr():
+    return render_template('qr_scanner.html')
+
 # ------------------------------------------------------------------------------
 # ''' Prizes Routes '''
 # ------------------------------------------------------------------------------
@@ -421,7 +461,34 @@ def delete_prize(id):
     flash('Prize deleted successfully!', 'success')
     return redirect(url_for('list_prizes'))
 
+# Route to withdraw a prize
+@app.route('/withdraw_prize', methods=['GET', 'POST'])
+def withdraw_prize():
+    # Logic to select a random registration number
+    if request.method == 'POST':
+        return render_template('withdraw_prize.html')
+    return render_template('withdraw_prize.html')
 
+# Route to get random registration number
+@app.route('/shuffle_numbers', methods=['GET'])
+def shuffle_numbers():
+    rnd_reg_no_text='000'
+
+    # Fetch all registration numbers not associated with a prize
+    registrations_without_prize = Registration.query.filter_by(prize_id=None).all()
+
+    # If there are registrations without a prize
+    if registrations_without_prize:
+        # Randomly select one registration number
+        selected_registration = random.choice(registrations_without_prize)
+        rnd_reg_no= selected_registration.registration_number
+    else:
+        rnd_reg_no=0
+    
+    rnd_reg_no_text=str(rnd_reg_no).zfill(3)
+    # Return a response (if needed)
+    return jsonify({'message': f'{rnd_reg_no_text}'})
 # ==============================================================================
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    # app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0',ssl_context=('C:\\cert.pem', 'C:\\key.pem'), debug=True)

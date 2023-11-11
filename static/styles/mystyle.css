@@ -99,7 +99,7 @@ body {
 
 .fs-3-rem {
     font-size: 1.5rem;
-  }
+}
 
 .modal-content {
     border-top: 10px solid #085E9D;
@@ -107,4 +107,69 @@ body {
     border-radius: 10px;
 }
 
+/* 
+.slot-machine__tile--no-transition {
+    transition: none !important;
+  }
+  
+  .slot-machine__tile--blur-fast {
+    filter: blur(5px);
+  }
+  
+  .slot-machine__tile--blur-medium {
+    filter: blur(3px);
+  }
+  
+  .slot-machine__tile--blur-slow {
+    filter: blur(2px);
+  }
+  
+  .slot-machine__tile--blur-turtle {
+    filter: blur(1px);
+  }
 
+
+
+
+  .randomizeMachine {
+    overflow: hidden;
+    width: 40px; 
+    height: 40px; 
+    border: 1px solid #085E9D;
+    border-radius: 5px;
+    font-size: x-large;
+    font-weight: bold;
+  }
+  
+  .number-window {
+    height: 40px;
+    width: 40px; 
+    overflow: hidden;
+  } */
+
+  .slot-machine {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.slot {
+    border: 1px solid #ccc;
+    width: 50px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.number {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    transition: transform 2s ease-in-out;
+}
