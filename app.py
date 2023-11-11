@@ -32,7 +32,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired
 
-from faker import Faker
+# from faker import Faker
 
 # ==============================================================================
 app = Flask(__name__)
@@ -42,7 +42,7 @@ db = SQLAlchemy(app)
 app.secret_key = secrets.token_hex(16)  # Generates a 32-character (16 bytes) hexadecimal key
 migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
-fake = Faker()
+# fake = Faker()
 CORS(app)
 
 # ==============================================================================
@@ -90,25 +90,25 @@ with app.app_context():
     db.create_all()
 
     # Loop to create 50 fake records
-    for _ in range(50):
-        record = Registration(
-            phone_number=fake.phone_number(),
-            first_name=fake.first_name(),
-            family_name=fake.last_name(),
-            father_name=fake.last_name(),
-            first_grand_name=fake.last_name(),
-            second_grand_name=fake.last_name(),
-            third_grand_name=fake.last_name(),
-            relation=fake.word(),
-            age=str(fake.random_int(18, 80)),  # Assuming age between 18 and 80
-            gender=fake.random_element(["Male", "Female"]),
-            city=fake.city(),
-            attendance=fake.random_element(["Yes", "No"]),
-            ideas=fake.text(),
-            registration_number=str(fake.random_int(100, 999))  # Unique 3-digit registration number
-            # Add prize_id if needed
-        )
-        db.session.add(record)
+    # for _ in range(50):
+    #     record = Registration(
+    #         phone_number=fake.phone_number(),
+    #         first_name=fake.first_name(),
+    #         family_name=fake.last_name(),
+    #         father_name=fake.last_name(),
+    #         first_grand_name=fake.last_name(),
+    #         second_grand_name=fake.last_name(),
+    #         third_grand_name=fake.last_name(),
+    #         relation=fake.word(),
+    #         age=str(fake.random_int(18, 80)),  # Assuming age between 18 and 80
+    #         gender=fake.random_element(["Male", "Female"]),
+    #         city=fake.city(),
+    #         attendance=fake.random_element(["Yes", "No"]),
+    #         ideas=fake.text(),
+    #         registration_number=str(fake.random_int(100, 999))  # Unique 3-digit registration number
+    #         # Add prize_id if needed
+    #     )
+    #     db.session.add(record)
 
     # Commit the changes
     db.session.commit()
