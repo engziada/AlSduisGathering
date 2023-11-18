@@ -32,6 +32,8 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired
 
+from flask_sslify import SSLify  # Use SSLify to enable HTTPS
+
 # from faker import Faker
 
 # ==============================================================================
@@ -44,6 +46,7 @@ migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
 # fake = Faker()
 CORS(app)
+sslify = SSLify(app)  # Enable SSL/TLS
 
 # ==============================================================================
 # ''' Models '''
@@ -490,5 +493,5 @@ def shuffle_numbers():
     return jsonify({'message': f'{rnd_reg_no_text}'})
 # ==============================================================================
 if __name__ == '__main__':
-    # app.run(host='0.0.0.0', debug=True)
-    app.run(host='0.0.0.0',ssl_context=('cert.pem', 'key.pem'), debug=True)
+    app.run(host='0.0.0.0', debug=True)
+    # app.run(host='0.0.0.0',ssl_context=('cert.pem', 'key.pem'), debug=True)
