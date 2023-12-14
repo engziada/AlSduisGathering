@@ -18,7 +18,7 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from PIL import Image, ImageDraw, ImageFont
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 from flask_migrate import Migrate  # Import Flask-Migrate
 from flask_cors import CORS
 
@@ -29,10 +29,12 @@ from wtforms import (
     TextAreaField,
     ValidationError,
     validators,
+    SelectMultipleField,
+    widgets,
+    IntegerField
 )
 from wtforms.validators import DataRequired
-
-from flask_sslify import SSLify  # Use SSLify to enable HTTPS
+# from wtforms.fields import MultiCheckboxField
 
 # from faker import Faker
 
@@ -46,7 +48,6 @@ migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
 # fake = Faker()
 CORS(app)
-sslify = SSLify(app)  # Enable SSL/TLS
 
 # ==============================================================================
 # ''' Models '''
@@ -54,6 +55,7 @@ sslify = SSLify(app)  # Enable SSL/TLS
 
 # Define the Registration model for the database table
 class Registration(db.Model):
+    __tablename__ = 'registration'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     phone_number = db.Column(db.Text, unique=True)
     first_name = db.Column(db.Text)
@@ -68,21 +70,31 @@ class Registration(db.Model):
     city = db.Column(db.Text)
     attendance = db.Column(db.Text)
     ideas = db.Column(db.Text)
-    registration_number = db.Column(db.Text)
-    prize_id = db.Column(db.Integer, db.ForeignKey('prize.id'))
+    registration_number = db.Column(db.Text, unique=True)
+    prize_id = db.Column(db.Integer, db.ForeignKey('prize.id', name='fk_reg_prize_id'))
 
 
 # Define the Prize model
 class Prize(db.Model):
+    __tablename__ = 'prize'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    guest_registration_number = db.Column(db.String(3), unique=True)
+    guest_registration_number = db.Column(db.String(3))
+    allowed_families = db.Column(db.String(100))
+    allowed_age_range = db.Column(db.String(100))
+    allowed_gender = db.Column(db.String(100))
+    is_next=db.Column(db.Boolean,default=False)
 
-    def __init__(self, name, description=None, guest_registration_number=None):
+    def __init__(self, name, description=None, guest_registration_number=None,allowed_families=None, allowed_age_range=None, allowed_gender=None, is_next=False):
         self.name = name
         self.description = description
         self.guest_registration_number = guest_registration_number
+        self.allowed_families = allowed_families
+        self.allowed_age_range = allowed_age_range
+        self.allowed_gender = allowed_gender
+        self.is_next=is_next
+
 
 # ==============================================================================
 #   ''' Database and Tables '''
@@ -119,7 +131,11 @@ with app.app_context():
 # ==============================================================================
 # ''' Forms '''
 # ==============================================================================
-
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+    
+    
 def validate_non_family_name(form, field):
   if form.family_name.data == 'أخرى' and not field.data:
       raise ValidationError('من فضلك أدخل البيان المطلوب')
@@ -144,17 +160,23 @@ class RegistrationForm(FlaskForm):
 
 
 # Form for adding a new prize
-class AddPrizeForm(FlaskForm):
+class PrizeForm(FlaskForm):
     name = StringField('إسم الهدية', validators=[DataRequired()])
     description = TextAreaField('الوصف')
+    allowed_families = StringField('العائلات المسموح لها')
+    allowed_age_range = SelectField('العمر المسموح به', choices=[('الكل', 'الكل'),('أقل من 19 سنة', 'أقل من 19 سنة'), ('من 20 سنة حتى 50 سنة', 'من 20 سنة حتى 50 سنة'), ('أعلى من 50 سنة', 'أعلى من 50 سنة')])
+    allowed_gender = SelectField('الجنس المسموح به', choices=[('الكل', 'الكل'),('ذكر', 'ذكر'), ('أنثى', 'أنثى')])
     # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
 
 
-# Form for editing an existing prize
-class EditPrizeForm(FlaskForm):
-    name = StringField('إسم الهدية', validators=[DataRequired()])
-    description = TextAreaField('الوصف')
-    # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
+# Model for the filter form
+class FilterForm(FlaskForm):
+    family_name = MultiCheckboxField('إسم العائلة', choices=[('السديس', 'السديس'), ('أخرى', 'أخرى')])
+    age = MultiCheckboxField('الفئة العمرية', choices=[('أقل من 19 سنة', 'أقل من 19 سنة'), ('من 20 سنة حتى 50 سنة', 'من 20 سنة حتى 50 سنة'), ('أعلى من 50 سنة', 'أعلى من 50 سنة')])
+    gender = MultiCheckboxField('الجنس', choices=[('ذكر', 'ذكر'), ('أنثى', 'أنثى')])
+    prize_id=IntegerField('الهدية', validators=[DataRequired()])
+    submit = SubmitField('بحث')
+
 
 # ==============================================================================
 # ''' Helper Functions '''
@@ -316,7 +338,7 @@ def delete_guest(guest_phoneno):
     except:
         flash('فشلت عملية الحذف', 'danger')
         return redirect(url_for('admin'))
-  
+
 
 # Route for the registration form
 @app.route('/register/<phone_number>', methods=['POST', 'GET'])
@@ -404,32 +426,52 @@ def export_to_excel():
     excel_file_path = 'registeration.xlsx'
     df.to_excel(excel_file_path, index=False)
     return send_file(excel_file_path, as_attachment=True)
- 
 
-# Route for the home page
-@app.route('/qr', methods=['GET', 'POST'])
-def qr():
-    return render_template('qr_scanner.html')
 
 # ------------------------------------------------------------------------------
 # ''' Prizes Routes '''
 # ------------------------------------------------------------------------------
 
 # Create route for displaying a list of prizes
-@app.route('/prizes', methods=['GET'])
+@app.route('/prizes', methods=['GET','POST'])
 def list_prizes():
     prizes = Prize.query.all()
-    return render_template('prizes.html', prizes=prizes)
+    filters=FilterForm()
+    if request.method == 'POST' and filters.validate_on_submit():
+        # Get filter from user
+        allowed_families = filters.family_name.data
+        allowed_age_range = filters.age.data
+        allowed_gender = filters.gender.data
+        prize_id=request.form['prize_id']
+        
+        # Set filter on the next prize
+        prize = Prize.query.get(prize_id)
+        prize.allowed_families=','.join(allowed_families)
+        prize.allowed_age_range=','.join(allowed_age_range)
+        prize.allowed_gender=','.join(allowed_gender)
+        
+        # Set is_next to the selected prize only
+        Prize.query.update({'is_next': False}) # Remove the flag from all other prizes
+        prize.is_next=True
+        
+        # Commit
+        db.session.commit()
+
+    return render_template('prizes.html', prizes=prizes, filters=filters)
+
 
 # Create route for adding a new prize
 @app.route('/prizes/add', methods=['GET', 'POST'])
 def add_prize():
-    form = AddPrizeForm()
+    form = PrizeForm()
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
+        allowed_families = request.form['allowed_families']
+        allowed_age_range = request.form['allowed_age_range']
+        allowed_gender = request.form['allowed_gender']
 
-        prize = Prize(name=name, description=description)
+        prize = Prize(name=name, description=description, allowed_families=allowed_families, allowed_age_range=allowed_age_range, allowed_gender=allowed_gender)
         db.session.add(prize)
         db.session.commit()
 
@@ -438,21 +480,27 @@ def add_prize():
 
     return render_template('add_prize.html',form=form)
 
+
 # Create route for editing a prize
 @app.route('/prizes/edit/<int:id>', methods=['GET', 'POST'])
 def edit_prize(id):
     prize = Prize.query.get(id)
-    form = EditPrizeForm(obj=prize)
+    form = PrizeForm(obj=prize)
 
     if request.method == 'POST':
         prize.name = request.form['name']
         prize.description = request.form['description']
+        prize.allowed_families = request.form['allowed_families']
+        prize.allowed_age_range = request.form['allowed_age_range']
+        prize.allowed_gender = request.form['allowed_gender']
+
         db.session.commit()
 
         flash('Prize updated successfully!', 'success')
         return redirect(url_for('list_prizes'))
 
     return render_template('edit_prize.html',form=form, prize=prize)
+
 
 # Create route for deleting a prize
 @app.route('/prizes/delete/<int:id>', methods=['POST'])
@@ -464,34 +512,122 @@ def delete_prize(id):
     flash('Prize deleted successfully!', 'success')
     return redirect(url_for('list_prizes'))
 
+
 # Route to withdraw a prize
 @app.route('/withdraw_prize', methods=['GET', 'POST'])
 def withdraw_prize():
-    # Logic to select a random registration number
-    if request.method == 'POST':
-        return render_template('withdraw_prize.html')
-    return render_template('withdraw_prize.html')
-
-# Route to get random registration number
-@app.route('/shuffle_numbers', methods=['GET'])
-def shuffle_numbers():
-    rnd_reg_no_text='000'
+    sel_prize = Prize.query.filter_by(is_next=True, guest_registration_number=None).first()
 
     # Fetch all registration numbers not associated with a prize
-    registrations_without_prize = Registration.query.filter_by(prize_id=None).all()
+    return render_template('withdraw_prize.html',prize=sel_prize)
+
+
+def get_filtered_reg_no(prize_id:int):
+    # Get sel prize filters
+    sel_prize = Prize.query.filter_by(id=prize_id).first()
+    allowed_families= sel_prize.allowed_families
+    allowed_age_range= sel_prize.allowed_age_range
+    allowed_gender= sel_prize.allowed_gender
+    # print('sel_prize: ',sel_prize.name)
+    # print('allowed_families: ',allowed_families)
+    # print('allowed_age_range: ',allowed_age_range)
+    # print('allowed_gender: ',allowed_gender)
+    
+    # Base query to filter records without a prize_id
+    base_query = Registration.query.filter(Registration.prize_id == None)
+
+    # Build the filter conditions dynamically
+    filter_conditions = []
+
+    # Check if allowed_families is not empty
+    if allowed_families and 'أخرى' not in allowed_families:
+        families = allowed_families.split(',')
+        family_condition = or_(*[Registration.family_name.contains(family) for family in families])
+        filter_conditions.append(family_condition)
+
+    # Check if allowed_age_range is not 'الكل'
+    if allowed_age_range:
+        age_ranges = allowed_age_range.split(',')
+        age_range_condition = or_(*[Registration.age.contains(age_range) for age_range in age_ranges])
+        filter_conditions.append(age_range_condition)
+
+    # Check if allowed_gender is not 'الكل'
+    if allowed_gender:
+        genders = allowed_gender.split(',')
+        gender_condition = or_(*[Registration.gender.contains(gender) for gender in genders])
+        filter_conditions.append(gender_condition)
+
+    # Apply the filter conditions
+    if filter_conditions:
+        final_query = base_query.filter(and_(*filter_conditions))
+    else:
+        final_query = base_query
+
+    print('*'*50)
+    # print('filter_conditions: ',*filter_conditions)
+    print('query_params: ',final_query.statement.compile().params)
+    # print('query_compile: ',final_query.statement.compile())
+    print('query: ',final_query.statement)    
+    print('*'*50)
+    # Execute the query to get the filtered records
+    registrations_without_prize = final_query.all()
+    
+    
+    # Assure that list has more than 3 items
+    # if len(registrations_without_prize)==0:
+    #     registrations_without_prize.append(" .. ")
+    #     registrations_without_prize.append(" لا يوجد فائز ")
+    #     registrations_without_prize.append(" .. ")
+    # elif len(registrations_without_prize)<3:
+    #     registrations_without_prize.append(" .. ")
+    #     registrations_without_prize.append(" .. ")
+        
+    
+    return registrations_without_prize
+
+
+# Route to get random registration number
+@app.route('/shuffle_numbers/<int:id>', methods=['GET', 'POST'])
+def shuffle_numbers(id):
+    
+    registrations_without_prize=get_filtered_reg_no(prize_id=id)
+    # registrations_without_prize = Registration.query.filter_by(prize_id=None).all()
+    random.shuffle(registrations_without_prize)
 
     # If there are registrations without a prize
     if registrations_without_prize:
         # Randomly select one registration number
         selected_registration = random.choice(registrations_without_prize)
+        print('*'*50)
+        print('selected_registration: ',selected_registration)
+        print('*'*50)
         rnd_reg_no= selected_registration.registration_number
-    else:
-        rnd_reg_no=0
+        # Reomve the select winner and move it to 2nd place
+        registrations_without_prize.remove(selected_registration)
+        registrations_without_prize.insert(1,selected_registration)
     
-    rnd_reg_no_text=str(rnd_reg_no).zfill(3)
-    # Return a response (if needed)
-    return jsonify({'message': f'{rnd_reg_no_text}'})
+        regno_list=[reg.registration_number.zfill(3) for reg in registrations_without_prize[:10]]
+        
+        # Return a response (if needed)
+        print(registrations_without_prize)
+        return jsonify(regno_list=regno_list, winner=registrations_without_prize[1].registration_number, winner_name=registrations_without_prize[1].first_name+" "+registrations_without_prize[1].family_name)
+    else:
+        return jsonify(regno_list=[], winner="", winner_name="")
+
+
+@app.route('/confirm_prize/<int:prize_id>/<int:reg_no>', methods=['GET', 'POST'])
+def confirm_prize(prize_id, reg_no):
+    # Get the sel prize object and update it
+    sel_prize = Prize.query.filter_by(id=prize_id).first()
+    sel_prize.guest_registration_number=reg_no
+    sel_prize.is_next=False
+    # Update the registeration table
+    db.session.query(Registration).filter(Registration.registration_number == reg_no).update({Registration.prize_id: prize_id})
+    # Commit the changes
+    db.session.commit()
+    return jsonify('Success')
+
+
 # ==============================================================================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
-    # app.run(host='0.0.0.0',ssl_context=('cert.pem', 'key.pem'), debug=True)

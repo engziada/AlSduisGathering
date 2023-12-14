@@ -2,6 +2,25 @@
 
 {% block content %}
   <h2>الهدايا</h2>
+  <form method="post">
+    {{ filters.hidden_tag() }}
+    <div class="border p-3 m-3 row ">
+      <div class="col">
+        {{ filters.family_name.label(class="form-label") }}
+        {{ filters.family_name() }}
+        <hr>
+        {{ filters.gender.label(class="form-label") }}
+        {{ filters.gender() }}
+        </div>
+      <div class="col">
+        {{ filters.age.label(class="form-label") }}
+        {{ filters.age() }}
+        <div class="border p-3 shadow" style="border-radius: 5px;">
+          <p>إختر التصفية المناسبة لعملية السحب القادمة ثم إضغط على 'إبدأ السحب' أمام الجائزة المختارة</p>
+        </div>
+      </div>
+    </div>
+
   <table class="table table-bordered">
     <thead>
       <tr>
@@ -22,10 +41,15 @@
             <form action="{{ url_for('delete_prize', id=prize.id) }}" method="post" style="display: inline-block;">
               <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
             </form>
+            {%if prize.guest_registration_number==None%}
+            <button type="submit" class="btn btn-primary btn-sm" name="prize_id" value="{{ prize.id }}">إبدأ السحب</button>
+            {%endif%}
           </td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
   <a href="{{ url_for('add_prize') }}" class="btn btn-success">إضافة</a>
+</form>
+
 {% endblock %}

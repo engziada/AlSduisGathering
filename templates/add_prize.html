@@ -12,6 +12,20 @@
       {{ form.description.label(class="form-label") }}
       {{ form.description(class="form-control") }}
     </div>
+    <div class="form-group">
+      {{ form.allowed_families.label(class="form-label") }}
+      <p class="font-italic font-weight-lighter text-secondary">يمكن إدخال أكثر من إسم عائلة و الفصل بينهم بفاصلة</p>
+      {{ form.allowed_families(class="form-control") }}
+    </div>
+    <div class="form-group">
+      {{ form.allowed_age_range.label(class="form-label") }}
+      {{ form.allowed_age_range(class="form-control") }}
+    </div>
+    <div class="form-group">
+      {{ form.allowed_gender.label(class="form-label") }}
+      {{ form.allowed_gender(class="form-control") }}
+    </div>
+
     <div class="row">
         <button type="submit" class="col btn btn-primary mx-5">إضافة</button>
         <a href="{{ url_for('list_prizes') }}" class="col btn btn-secondary mx-5">إلغاء</a>

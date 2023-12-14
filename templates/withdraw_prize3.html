@@ -1,0 +1,101 @@
+{% extends 'master.html' %}
+
+{% block content %}
+  <h2>السحب العشوائي</h2>
+  <form method="post">
+  </form>
+  <script src="https://unpkg.com/animejs@3/lib/anime.min.js"></script>
+  <div class="d-flex align-items-center" style="height: 200px;">
+    <h4 id="titletext">رقم الفائز هو : </h4>
+    <button id="start-spin-button" class="btn btn-success btn-lg text-center mx-auto">Start</button>
+    <button id="stop-spin-button" class="btn btn-danger btn-lg text-center mx-auto">Stop</button>
+    <ul id="slot-results"></ul>
+  </div>
+  <a href="{{ url_for('list_prizes') }}" class="btn btn-secondary mt-3">العودة لصفحة الهدايا</a>
+{% endblock %}
+
+{% block scripts%}
+    <script>
+      const startSpinButton = document.getElementById('start-spin-button');
+      const stopSpinButton = document.getElementById('stop-spin-button');
+      const slotResultsUl = document.getElementById('slot-results');
+  
+      // Create animation objects for each slot
+      const slotAnimations = [];
+  
+      for (let i = 0; i < 3; i++) {
+        slotAnimations.push({
+          targets: `#slot-${i + 1}`,
+          duration: 1000,
+          easing: 'easeInOutSine',
+          rotate: {
+            from: 0,
+            to: '360deg',
+            duration: 500,
+            loop: true,
+          },
+        });
+      }
+
+      const animateWinningNumbers = () => {
+        const winningNumbersElements = document.querySelectorAll('.winner');
+        anime.timeline({ delay: 500 })
+          .add({
+            targets: winningNumbersElements,
+            duration: 500,
+            easing: 'easeInOutQuad',
+            scale: [1, 1.2, 1],
+            backgroundColor: ['#fff', '#f00', '#fff'],
+          })
+          .play();
+      };
+  
+      startSpinButton.addEventListener('click', () => {
+        // Start spinning animation
+        anime.timeline().add(slotAnimations).play();
+        // Disable start button and enable stop button
+        startSpinButton.disabled = true;
+        stopSpinButton.disabled = false;
+      });
+  
+      stopSpinButton.addEventListener('click', () => {
+        // Stop animation
+        anime.timeline().pause();
+        // Enable start button and disable stop button
+        startSpinButton.disabled = false;
+        stopSpinButton.disabled = true;
+      });
+  
+      // Fetch and display results on API response
+      fetch('/shuffle_numbers', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        // Clear previous results
+        slotResultsUl.innerHTML = '';
+    
+        // Extract winning numbers
+        const winningNumbers = data.winningNumbers;
+    
+        // Update results
+        data.forEach((result, index) => {
+          const li = document.createElement('li');
+          li.textContent = result;
+          
+          // Highlight winning numbers
+          if (winningNumbers.includes(result)) {
+            li.classList.add('winner');
+          }
+    
+          slotResultsUl.appendChild(li);
+        });
+
+        setTimeout(() => {
+          animateWinningNumbers();
+        }, 1000);
+      })
+      .catch(error => {
+        console.error(error);
+      });
+    </script>
+
+{% endblock %}
