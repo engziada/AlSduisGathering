@@ -20,6 +20,7 @@
                 <th>المدينة</th>
                 <th>تأكيد الحضور</th>
                 <th>مقترحات</th>
+                <th>تم حضوره</th>
                 <th></th>              
             </tr>
         </thead>
@@ -35,6 +36,7 @@
                 <td>{{ guest.city }}</td>
                 <td>{{ guest.attendance }}</td>
                 <td>{{ guest.ideas }}</td>
+                <td>{{ guest.is_attended }}</td>
                 <td>
                     <a href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}">حذف</a>
                 </td>

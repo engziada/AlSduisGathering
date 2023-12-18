@@ -5,9 +5,12 @@
     <form method="POST" action="/">
         {{ form.hidden_tag() }}
         <div class="form-group">
+            <div class="text-info">
+                <p>أدخل رقم الجوال لإتمام عملية التسجيل</p>
+            </div>
             {{ form.phone_number(class="form-control text-center font-weight-bold fs-3-rem", placeholder="من فضلك أدخل رقم الهاتف الجوال", required="required") }}
         </div>
-        <button type="submit" class="btn btn-primary">بحث</button>
+        <button type="submit" class="btn btn-primary">تسجيل</button>
     </form>
 </div>
 {% endblock %}

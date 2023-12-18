@@ -1,0 +1,32 @@
+{% extends 'master.html' %}
+
+{% block content %}
+<div class="container text-center">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {%if result=="" or result=="failed"%}
+            <div class="form-group">
+                <div class="text-info">
+                    <p>أدخل رقم الجوال لتأكيد الحضور</p>
+                </div>
+                {{ form.phone_number(class="form-control text-center font-weight-bold fs-3-rem", placeholder="من فضلك أدخل رقم الهاتف الجوال", required="required") }}
+                {%if result=="failed"%}
+                <div class="text-danger">
+                    <p>رقم الجوال غير مسجل , برجاء التسجيل اولا</p>
+                </div>
+                {%endif%}
+            </div>
+            <button type="submit" class="btn btn-primary">تاكيد</button>
+        {%elif result=="success"%}
+            <div class="form-group">
+                <div>
+                    <p class="text-success">تم تأكيد حضورك بنجاح</p>
+                    <p>تذكر أن رقم تسجيلك في السحب على الهدايا هو</p>
+                    <h2>{{reg_no}}</h2>
+                    <p>حظ سعيد</p>
+                </div>
+            </div>
+        {%endif%}
+    </form>
+</div>
+{% endblock %}

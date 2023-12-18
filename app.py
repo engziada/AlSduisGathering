@@ -72,6 +72,7 @@ class Registration(db.Model):
     ideas = db.Column(db.Text)
     registration_number = db.Column(db.Text, unique=True)
     prize_id = db.Column(db.Integer, db.ForeignKey('prize.id', name='fk_reg_prize_id'))
+    is_attended = db.Column(db.Boolean, default=False)
 
 
 # Define the Prize model
@@ -309,10 +310,7 @@ def index():
         phone_number = request.form['phone_number']
         if not is_registered(phone_number):
             return redirect(url_for('register', phone_number=phone_number))
-            # return render_template('register.html', phone_number=phone_number, form=form)
-        # user_data = get_user_data(phone_number)
         return redirect(url_for('registered', phone_number=phone_number))
-        # return render_template('registered.html', phone_number=phone_number)
     return render_template('index.html', form=form)  # Pass the form instance to the template
 
 
@@ -513,6 +511,11 @@ def delete_prize(id):
     return redirect(url_for('list_prizes'))
 
 
+# ------------------------------------------------------------------------------
+# ''' Withdrawal Routes '''
+# ------------------------------------------------------------------------------
+
+
 # Route to withdraw a prize
 @app.route('/withdraw_prize', methods=['GET', 'POST'])
 def withdraw_prize():
@@ -534,7 +537,9 @@ def get_filtered_reg_no(prize_id:int):
     # print('allowed_gender: ',allowed_gender)
     
     # Base query to filter records without a prize_id
-    base_query = Registration.query.filter(Registration.prize_id == None)
+    base_query = Registration.query.filter(
+        Registration.prize_id == None, Registration.is_attended == True
+    )
 
     # Build the filter conditions dynamically
     filter_conditions = []
@@ -595,7 +600,7 @@ def shuffle_numbers(id):
     random.shuffle(registrations_without_prize)
 
     # If there are registrations without a prize
-    if registrations_without_prize:
+    if registrations_without_prize and len(registrations_without_prize)   > 1:
         # Randomly select one registration number
         selected_registration = random.choice(registrations_without_prize)
         print('*'*50)
@@ -627,6 +632,31 @@ def confirm_prize(prize_id, reg_no):
     db.session.commit()
     return jsonify('Success')
 
+
+# ------------------------------------------------------------------------------
+# ''' Attendence confirmation Routes '''
+# ------------------------------------------------------------------------------
+
+
+# Route for attendence confirmation
+@app.route('/confirm_attendence', methods=['GET', 'POST'])
+def confirm_attendence():
+    form = RegistrationForm()  # Create an instance of the RegistrationForm
+    if request.method == 'POST':
+        phone_number = request.form['phone_number']
+        sel_reg=Registration.query.filter_by(phone_number=phone_number).first()
+        if sel_reg:
+            sel_reg.is_attended = True
+            db.session.commit()
+            return render_template(
+                    "confirm_attendence.html",
+                    form=form,
+                    result="success",
+                    reg_no=sel_reg.registration_number,
+            )
+        else:
+            return render_template("confirm_attendence.html", form=form, result="failed")
+    return render_template('confirm_attendence.html', form=form, result="")  # Pass the form instance to the template
 
 # ==============================================================================
 if __name__ == '__main__':
