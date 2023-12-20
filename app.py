@@ -159,7 +159,13 @@ def validate_non_family_name(form, field):
 # Model for the registration form
 class RegistrationForm(FlaskForm):
     phone_number = StringField(
-        "رقم الهاتف الجوال", validators=[validators.DataRequired()]
+        "رقم الهاتف الجوال",
+        validators=[
+            validators.DataRequired(),
+            validators.Regexp(
+                "^[+]?\d{10,15}$",
+            ),
+        ],
     )
     first_name = StringField("إسمك الأول", validators=[validators.InputRequired()])
     family_name = SelectField(
@@ -204,7 +210,7 @@ class RegistrationForm(FlaskForm):
     attendance = SelectField(
         "هل ستحضر اللقاء",
         choices=[
-            ("",  ""),
+            ("", ""),
             ("سوف أحضر باذن الله", "سوف أحضر باذن الله"),
             ("أعتذر عن الحضور", "أعتذر عن الحضور"),
         ],
