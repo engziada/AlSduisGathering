@@ -1,25 +1,54 @@
-<!-- templates/users.html -->
 {% extends 'master.html' %}
 
 {% block content %}
     <h1 class="col">الضيوف</h1>
     <hr>
-    <div class="text-left">
+    
+<div class="border border-1 text-center px-5 rounded-pill shadow">
+    <div class="row pt-3">
+        <div class="col-md-4">
+                <p>مجموع الضيوف: {{guests_count}}</p>
+        </div>
+        <div class="col-md-4">
+                <p>الضيوف الذكور: {{guest_male}}</p>
+        </div>
+        <div class="col-md-4">
+                <p>الضيوف الإناث: {{guest_female}}</p>
+        </div>
+    </div>
+
+    <hr class="p-0 m-0">
+
+    <div class="row pt-3">
+        <div class="col-md-4">
+                <p>تأكيد الحضور: {{guest_attendance}}</p>
+        </div>
+        <div class="col-md-4">
+                <p>تأكيد عدم الحضور: {{guest_not_attendance}}</p>
+        </div>
+        <div class="col-md-4">
+                <p>الضيوف الحاضرون: {{guest_is_attended}}</p>
+        </div>
+    </div>
+</div>
+
+    <div class="text-left mt-4">
       <a href="{{ url_for('export_to_excel') }}">حفظ كملف إكسل</a>
     </div>
     <table class="table table-striped table-responsive">
 
         <thead>
             <tr>
-                <th>رقم التسجيل</th>
+                <th class="border border-1">مسلسل</th>
                 <th>الإسم بالكامل</th>
                 <th>رقم الجوال</th>
+                <th>رقم التسجيل</th>
                 <th>صلة القرابة</th>
                 <th>السن</th>
                 <th>الجنس</th>
                 <th>المدينة</th>
                 <th>تأكيد الحضور</th>
-                <th>مقترحات</th>
+                <!-- <th>مقترحات</th> -->
                 <th>تم حضوره</th>
                 <th></th>              
             </tr>
@@ -27,18 +56,19 @@
         <tbody>
             {% for guest in guests.items %}
             <tr>
-                <td>{{ guest.registration_number }}</td>
+                <td class="border border-1">{{ loop.index }}</td>
                 <td>{{ guest.first_name }} {{ guest.father_name }} {{ guest.first_grand_name }} {{ guest.second_grand_name }} {{ guest.third_grand_name }} {{ guest.family_name }}</td>
                 <td>{{ guest.phone_number }}</td>
+                <td>{{ guest.registration_number }}</td>
                 <td>{{ guest.relation }}</td>
                 <td>{{ guest.age }}</td>
                 <td>{{ guest.gender }}</td>
                 <td>{{ guest.city }}</td>
                 <td>{{ guest.attendance }}</td>
-                <td>{{ guest.ideas }}</td>
-                <td>{{ guest.is_attended }}</td>
-                <td>
-                    <a href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}">حذف</a>
+                <!-- <td>{{ guest.ideas }}</td> -->
+                <td>{% if guest.is_attended %}حضر{% else %}لم يحضر{%endif%}</td>
+                <td class="border border-1">
+                    <a class="text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}">حذف</a>
                 </td>
             </tr>
             {% endfor %}
