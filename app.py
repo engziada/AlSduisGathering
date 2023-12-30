@@ -51,7 +51,7 @@ migrate = Migrate(app, db)  # Initialize Flask-Migrate
 CORS(app)
 
 # Google spreadsheet details
-SPREADSHEET_KEY = '1Eqoz0DyrEmSKLPfhaGToNhiDYDLSMUkG'
+SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRaFYu_tsagGZ16_B9ku1LurJxfe4JtN-6vW5a1_cAEEWkVsV7Wy9hm0lttiYTeBCnjOmnHJjTV6MNd/pubhtml'
 GUESTS_SHEET_NAME = 'Sheet1'
 
 # ==============================================================================
@@ -280,11 +280,9 @@ def create_image(content):
     return image
 
 # Function to check if a value exists in a specific sheet
-def is_value_in_sheet(spreadsheet_key, sheet_name, target_value):
-    # Construct the URL to fetch the sheet data
-    sheet_data_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_key}/edit"
+def is_value_in_sheet(spreadsheet_url, sheet_name, target_value):
     # Make a request to fetch the sheet data
-    response = requests.get(sheet_data_url)
+    response = requests.get(spreadsheet_url)
     if response.status_code == 200:
         # Parse the HTML response
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -440,9 +438,9 @@ def index():
         phone_number = request.form["phone_number"]
         # Check if the number is in the spreadsheet
         if not is_value_in_sheet(
-            spreadsheet_key=SPREADSHEET_KEY,
+            spreadsheet_url=SPREADSHEET_URL,
             sheet_name=GUESTS_SHEET_NAME,
-            target_value=phone_number,
+            target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
         ):
             # If the number is not in the spreadsheet, redirect to the error page
             return render_template("not_in_sheet.html")
