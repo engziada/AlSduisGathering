@@ -1,134 +1,192 @@
 {% extends 'master.html' %}
 
 {% block content %}
-
-<!-- Add confetti elements to the HTML with a hidden class initially -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.7/themes/odometer-theme-default.css" integrity="sha512-kMPqFnKueEwgQFzXLEEl671aHhQqrZLS5IP3HzqdfozaST/EgU+/wkM07JCmXFAt9GO810I//8DBonsJUzGQsQ==" crossorigin="anonymous" referrerpolicy="no-referrer" /><!-- Add confetti elements to the HTML with a hidden class initially -->
 <div id="confettiContainer" style="display: flex; flex-direction: row; justify-content: space-between;">
 </div>
 
-  <h2>السحب العشوائي</h2>
-  <div id="prize_box" class="border border-success p-2 m-5 font-weight-bold shadow text-center" style="border-radius: 5px">
-    <h5>الجائزة التي سيتم السحب عليها هي</h5>
-    <h1>{{prize.name}}</h1>
-    <h2>{{prize.description}}</h2>
-    <span id="prizeid_span" style="display: none;">{{prize.id}}</span>
+<div class="row">
+  <div class="col p-0 m-0">
+    <div id="prize_box" class="border border-success p-2 m-2 font-weight-bold shadow text-center" style="border-radius: 5px; height: 100%;">
+      <h5>الجائزة التي سيتم السحب عليها هي</h5>
+      <div class=" p-2 m-2" style="font-size: 5em;">{%if prize.name%}{{prize.name}}{%else%}----{%endif%}</div>
+      <h2>{%if prize.description%}{{prize.description}}{%else%}لم تحدد بعد{%endif%}</h2>
+      <span id="prizeid_span" style="display: none;">{{prize.id}}</span>
+    </div>
   </div>
 
-    <!-- randomize -->
-<div class="slot-machine-body my-5" id="slotmachine">
-  <div class="slot-machine">
-    <div class="ul" id="slot1">
+  <div class="col p-0 m-0">
+    <div id="regno_box" class="border border-success p-2 m-2 font-weight-bold shadow text-center" style="border-radius: 5px; height: 100%;">
+      <h5>الرقم الفائز بالجائزة هو</h5>
+      <div class="regno-odometer p-2 m-2" style="font-size: 5em; direction:ltr">0000</div>
+      <h2 id="winner_name_box">لم يحدد بعد</h2>
     </div>
   </div>
 </div>
-<div class="text-center" style="width: 100%;">
-  <button class="btn btn-primary text-center" id="startButton">إبدأ</button>
+
+<div class="row">
+  <div class="col text-right">
+      <button class="btn btn-primary" id="startButton" style="z-index: 9999; width: 10em;">إبدأ</button>
+  </div>
+  <div class="col text-left">
+    <button class="btn btn-success" id="confirmButton" style="z-index: 9999; width: 10em; display: none;">تأكيد</button>
+  </div>
 </div>
-  <div class="border border-success p-2 m-5 font-weight-bold shadow text-center" id="hiddenDiv" style="border-radius: 5px; display:none">
+
+  <!-- <div class="border border-success p-2 m-5 font-weight-bold shadow text-center" id="hiddenDiv" style="border-radius: 5px; display:none">
     <h2 id="winner_name_box"></h2>
     <div class="text-left">
       <button class="btn btn-success" id="confirmButton">تأكيد</button>
     </div>
-  </div>
+  </div> -->
   
-  <a href="{{ url_for('list_prizes') }}" class="btn btn-secondary mt-3">العودة لصفحة الهدايا</a>
+  <!-- <a href="{{ url_for('list_prizes') }}" class="btn btn-secondary mt-3">العودة لصفحة الهدايا</a> -->
 {% endblock %}
 
 {% block scripts%}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.7/odometer.min.js" integrity="sha512-v3fZyWIk7kh9yGNQZf1SnSjIxjAKsYbg6UQ+B+QxAZqJQLrN3jMjrdNwcxV6tis6S0s1xyVDZrDz9UoRLfRpWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
 <script>
   var winnername;
   var winnerno;
   var prizeId = document.getElementById('prizeid_span').textContent.trim();
+  var winner_name_box = document.getElementById('winner_name_box');
+  var confirm_button = document.getElementById('confirmButton'); 
+  var regno_box = document.getElementById('regno_box');
+  var start_button = document.getElementById('startButton'); 
+  
 
-    document.addEventListener('animationend', function(event) {
-      if (event.animationName === 'confetti-fall') {
-        event.target.style.display = 'none';
+  const createOdometer = (el, value) => {
+    const odometer = new Odometer({
+      el: el,
+      value: 0,
+      format: "dddd",
+      duration: 3000,
+      //animation: 'count'
+
+    });
+    odometer.update(value);
+  };
+  const odometerEl = document.querySelector('.regno-odometer')
+
+  if (prizeId === '') {
+    start_button.innerText = 'تحديث';
+    }
+
+</script>
+
+<script>
+  document.getElementById('startButton').addEventListener('click', function () {
+    confirm_button.style.display = 'none';
+    winner_name_box.innerHTML = 'لم يحدد بعد';
+
+    if (start_button.innerText.trim() === 'تحديث') {
+      window.location.reload();
+      if(prizeId!=''){
+        start_button.innerText ='إبدأ';
+      }
+      return;
+    }
+
+    // Fetch the updated list from the server
+    $.ajax({
+      url: `/shuffle_numbers/${prizeId}`,
+      type: 'GET',
+      dataType: 'json',
+      success: function (data) {
+        var regno_list = data.regno_list;
+        winnerno = data.winner;
+        winnername = data.winner_name;
+
+        createOdometer(odometerEl, winnerno);
+
+        setTimeout(function () {
+          confirm_button.style.display = 'block';
+          $('#winner_name_box').text(winnername);
+        }, 2500); // Added 3 second delay
+
+      },
+      error: function (error) {
+        console.error('Error fetching updated list:', error);
       }
     });
-
-  document.getElementById('startButton').addEventListener('click', function() {
-        var slotmachine=document.getElementById('slot1');
-        //var winner_name_box=document.getElementById('winner_name');
-        var hiddenDiv = document.getElementById('hiddenDiv'); // Assuming you have a hidden div with this ID
-        var confettiContainer = document.getElementById('confettiContainer'); // Assuming you have a container for confetti
-
-        // Add confetti elements dynamically
-        confettiContainer.innerHTML = ''; // Clear existing confetti elements
-        for (let i = 0; i < 20; i++) { // Add as many confetti elements as needed
-          const confetti = document.createElement('div');
-          confetti.className = 'confetti hidden-confetti';
-          confetti.style.animationDuration = Math.random() * 2 + 's'; // Randomize animation duration
-          confetti.style.animationDelay = Math.random() + 's'; // Randomize animation delay
-          confetti.style.transform = 'rotate(' + Math.random() * 360 + 'deg)'; // Randomize initial rotation
-          confettiContainer.appendChild(confetti);
-        };
-        var confetti = $('.confetti'); // Use jQuery selector to get the confetti elements
-
-        // Fetch the updated list from the server
-        $.ajax({
-          url: `/shuffle_numbers/${prizeId}`,
-          type: 'GET',
-          dataType: 'json',
-          success: function(data) {
-            var regno_list=data.regno_list;
-            winnerno=data.winner;
-            winnername=data.winner_name;
-
-            // Clear existing slots before appending new ones
-            slotmachine.innerHTML = '';
-            hiddenDiv.style.display = 'none';
-
-            regno_list.forEach((result, index) => {
-              const newDiv = document.createElement('div');
-              newDiv.className = 'slot';
-              newDiv.textContent = result;
-              slotmachine.appendChild(newDiv);
-            });
-    
-            $('#winner_name_box').text(winnername);
-    
-            // Reset
-            slotmachine.classList.remove('play');
-            void slotmachine.offsetWidth;  // Trigger reflow to restart the animation
-            slotmachine.classList.add('play');       
-            
-            // Add an event listener for animation end
-            slotmachine.addEventListener('animationend', function() {
-              // Show the hidden div after the animation ends
-              hiddenDiv.style.display = 'block';
-              confetti.removeClass('hidden-confetti');
-
-            });
-            
-          },
-          error: function(error) {
-            console.error('Error fetching updated list:', error);
-          }
-        });
   });
 
-  document.getElementById('confirmButton').addEventListener('click', function() {
-    var prizebox=document.getElementById('prize_box');
-    var hiddenDiv = document.getElementById('hiddenDiv'); // Assuming you have a hidden div with this ID
-    // Send 'prize id' and 'reg id' to Python function using another AJAX request
+  document.getElementById('confirmButton').addEventListener('click', async function () {
+    var prizebox = document.getElementById('prize_box');
     $.ajax({
       url: `/confirm_prize/${prizeId}/${winnerno}`, // Include 'prize id' and 'reg id' in the URL
       type: 'POST', // Use POST or GET based on your server setup
       dataType: 'json',
-      success: function(response) {
+      success: function (response) {
         prizebox.innerHTML = `
-        <h3>تم تأكيد الفائز بنجاح</h3>
-        <h2>مبروك</h2>
-        <h1>${winnername}</h1>
-        <h2>هديتك</h2>
-        <h1>{{prize.name}}</h1>`;
-        //window.location.href = '/withdraw_prize'; // Replace with the actual URL of the 'prize list' page
-        hiddenDiv.style.display = 'none';
+    <h3>تم تأكيد الفائز بنجاح</h3>
+    <h2 class='text-danger'>مبروك</h2>
+    <h1>${winnername}</h1>
+    <h2>هديتك</h2>
+    <h1>{{prize.name}}</h1>`;
+
+        async function animateConfetti() {
+          for (let i = 0; i < 5; i++) {
+            confetti({
+              particleCount: 200,
+              startVelocity: 50,
+              spread: 360,
+              origin: {
+                x: Math.random(),
+                // since they fall down, start a bit higher than random
+                y: Math.random() - 0.2
+              }
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+
+        animateConfetti();
+        confirm_button.style.display = 'none';
+        prizeId=null;
+        winnerno = null;
+        winnername = null;
+        start_button.innerText ="تحديث";
+
+        //refresh page in 5 seconds
+        startCountdown(regno_box,10);
+
+
+
       },
-      error: function(error) {
+      error: function (error) {
         console.error('Error confirming prize:', error);
       }
     });
   });
 </script>
+
+<script>
+  // Function to start the countdown
+  function startCountdown(el,sec) {
+    let seconds = sec;
+
+    // Update the timer every second
+    const timerInterval = setInterval(() => {
+      el.innerHTML = `
+            <h2>سيتم تحديث الصفحة بعد</h2>
+            <h3>${seconds}</h3>
+            `;
+      seconds--;
+
+      // Check if the countdown has reached 0
+      if (seconds < 0) {
+        // Clear the interval to stop the countdown
+        clearInterval(timerInterval);
+
+        // Force a page refresh
+        window.location.reload();
+      }
+    }, 1000);
+  }
+</script>
+
 {% endblock %}

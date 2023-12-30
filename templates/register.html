@@ -1,6 +1,13 @@
 {% extends 'master.html' %}
 
 {% block content %}
+    <div class="header">
+        <div class="text-center font-weight-bold">ببالغ السرور يسرنا دعوتكم للاجتماع السنوي لأسرة السديس</div>
+        <div class="text-center font-weight-bold">والذي سيقام بمشيئة الله في مدينة الرياض</div>
+        <div class="text-center font-weight-bold">يوم الجمعة 7-7-1445هـ الموافق 19-01-2024م في تمام الساعة 7:00 مساءً </div>
+        <hr>
+    </div>
+
 <div class="container">
     <form method="POST" action="/register/{{ phone_number }}">
         {{ form.hidden_tag() }}
