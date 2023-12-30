@@ -4,6 +4,8 @@ import random
 import secrets
 
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 from flask import (
     Flask,
     Response,
@@ -16,11 +18,11 @@ from flask import (
     url_for,
 )
 from flask_cors import CORS
-from flask_migrate import Migrate  # Import Flask-Migrate
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from PIL import Image, ImageDraw, ImageFont
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, or_
 from wtforms import (
     IntegerField,
     SelectField,
@@ -34,22 +36,23 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired
 
-# from wtforms.fields import MultiCheckboxField
-
-# from faker import Faker
-
 # ==============================================================================
-app = Flask(__name__)
 
+# Initialize Flask
+app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///registrations.db"
+app.secret_key = secrets.token_hex(16)  
+
+# Initialize Flask-SQLAlchemy
 db = SQLAlchemy(app)
-app.secret_key = secrets.token_hex(
-    16
-)  # Generates a 32-character (16 bytes) hexadecimal key
 migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
-# fake = Faker()
+# Initialize Flask-CORS
 CORS(app)
+
+# Google spreadsheet details
+SPREADSHEET_KEY = '1Eqoz0DyrEmSKLPfhaGToNhiDYDLSMUkG'
+GUESTS_SHEET_NAME = 'Sheet1'
 
 # ==============================================================================
 # ''' Models '''
@@ -114,6 +117,11 @@ class Prize(db.Model):
 # ==============================================================================
 
 # Create the database and tables if they don't exist
+
+# Initialize Flask-Faker
+# from faker import Faker
+# fake = Faker()
+
 with app.app_context():
     db.create_all()
 
@@ -141,135 +149,17 @@ with app.app_context():
     # Commit the changes
     db.session.commit()
 
-
 # ==============================================================================
-# ''' Forms '''
+# ''' Helper Functions '''
 # ==============================================================================
-class MultiCheckboxField(SelectMultipleField):
-    widget = widgets.ListWidget(prefix_label=False)
-    option_widget = widgets.CheckboxInput()
-
 
 def validate_non_family_name(form, field):
     if form.family_name.data == "أخرى" and not field.data:
         raise ValidationError("من فضلك أدخل البيان المطلوب")
 
-
-# Model for the registration form
-class RegistrationForm(FlaskForm):
-    phone_number = StringField(
-        "رقم الهاتف الجوال",
-        validators=[
-            validators.DataRequired(),
-            validators.Regexp(
-                "^[+]?\d{10,15}$",
-            ),
-        ],
-    )
-    first_name = StringField("إسمك الأول", validators=[validators.InputRequired()])
-    family_name = SelectField(
-        "إسم العائلة",
-        choices=[("السديس", "السديس"), ("أخرى", "أخرى")],
-        validators=[validators.InputRequired()],
-    )
-    custom_family_name = StringField(
-        "إسم العائلة غير أسرة السديس", validators=[validate_non_family_name]
-    )
-    relation = StringField(
-        "إن لم تكن من أسرة السديس فلطفاً حدد نوع العلاقة",
-        validators=[validate_non_family_name],
-    )
-    father_name = StringField("إسم الأب", validators=[validators.InputRequired()])
-    first_grand_name = StringField(
-        "إسم الجد الأول", validators=[validators.InputRequired()]
-    )
-    second_grand_name = StringField(
-        "إسم الجد الثاني", validators=[validators.InputRequired()]
-    )
-    third_grand_name = StringField(
-        "إسم الجد الثالث/فرع الأسرة", validators=[validators.InputRequired()]
-    )
-    age = SelectField(
-        "ماهي فئتك العمرية",
-        choices=[
-            ("أقل من 19 سنة", "أقل من 19 سنة"),
-            ("من 20 سنة حتى 50 سنة", "من 20 سنة حتى 50 سنة"),
-            ("أعلى من 50 سنة", "أعلى من 50 سنة"),
-        ],
-        validators=[validators.InputRequired()],
-    )
-    gender = SelectField(
-        "الجنس",
-        choices=[("ذكر", "ذكر"), ("أنثى", "أنثى")],
-        validators=[validators.InputRequired()],
-    )
-    city = StringField(
-        "مدينة العنوان الدائم لك", validators=[validators.InputRequired()]
-    )
-    attendance = SelectField(
-        "هل ستحضر اللقاء",
-        choices=[
-            ("", ""),
-            ("سوف أحضر باذن الله", "سوف أحضر باذن الله"),
-            ("أعتذر عن الحضور", "أعتذر عن الحضور"),
-        ],
-        validators=[validators.InputRequired()],
-    )
-    ideas = TextAreaField(
-        "هل لديك مشاركة أو فكرة تود تقديمها في الحفل ؟ نسعد بمعرفة ذلك"
-    )
-    submit = SubmitField("تسجيل")
-
-
-# Form for adding a new prize
-class PrizeForm(FlaskForm):
-    name = StringField("إسم الهدية", validators=[DataRequired()])
-    description = TextAreaField("الوصف")
-    allowed_families = StringField("العائلات المسموح لها")
-    allowed_age_range = SelectField(
-        "العمر المسموح به",
-        choices=[
-            ("الكل", "الكل"),
-            ("أقل من 19 سنة", "أقل من 19 سنة"),
-            ("من 20 سنة حتى 50 سنة", "من 20 سنة حتى 50 سنة"),
-            ("أعلى من 50 سنة", "أعلى من 50 سنة"),
-        ],
-    )
-    allowed_gender = SelectField(
-        "الجنس المسموح به", choices=[("الكل", "الكل"), ("ذكر", "ذكر"), ("أنثى", "أنثى")]
-    )
-    # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
-
-
-# Model for the filter form
-class FilterForm(FlaskForm):
-    family_name = MultiCheckboxField(
-        "إسم العائلة", choices=[("السديس", "السديس"), ("أخرى", "أخرى")]
-    )
-    age = MultiCheckboxField(
-        "الفئة العمرية",
-        choices=[
-            ("أقل من 19 سنة", "أقل من 19 سنة"),
-            ("من 20 سنة حتى 50 سنة", "من 20 سنة حتى 50 سنة"),
-            ("أعلى من 50 سنة", "أعلى من 50 سنة"),
-        ],
-    )
-    gender = MultiCheckboxField("الجنس", choices=[("ذكر", "ذكر"), ("أنثى", "أنثى")])
-    prize_id = IntegerField("الهدية", validators=[DataRequired()])
-    submit = SubmitField("بحث")
-
-
-# ==============================================================================
-# ''' Helper Functions '''
-# ==============================================================================
-
-
 # Helper function to generate a unique registration number
 def generate_registration_number():
-    import random
-
     return str(random.randint(1000, 9999))
-
 
 
 def is_registered(phone_number):
@@ -389,11 +279,158 @@ def create_image(content):
     # draw.text((x, y), content, fill='black', font=font)
     return image
 
+# Function to check if a value exists in a specific sheet
+def is_value_in_sheet(spreadsheet_key, sheet_name, target_value):
+    # Construct the URL to fetch the sheet data
+    sheet_data_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_key}/edit"
+    # Make a request to fetch the sheet data
+    response = requests.get(sheet_data_url)
+    if response.status_code == 200:
+        # Parse the HTML response
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find the table corresponding to the sheet
+        tables = soup.find('table')
+        # Check if the table exists
+        if tables:
+            # Check if the target value exists in any cell
+            for row in tables.find_all('tr'):
+                if target_value in [cell.text.strip() for cell in row.find_all('td')]:
+                    return True
+            return False
+        else:
+            print(f"Sheet '{sheet_name}' not found.")
+            return False
+    else:
+        print(f"Error fetching data from Spreadsheet. Status code: {response.status_code}")
+        return False
+
+
+# ==============================================================================
+# ''' Forms '''
+# ==============================================================================
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+
+# Model for the registration form
+class RegistrationForm(FlaskForm):
+    phone_number = StringField(
+        "رقم الهاتف الجوال",
+        validators=[
+            validators.DataRequired(),
+            validators.Regexp(
+                "^[+]?\d{10,15}$",
+            ),
+        ],
+    )
+    first_name = StringField("إسمك الأول", validators=[validators.InputRequired()])
+    family_name = SelectField(
+        "إسم العائلة",
+        choices=[("السديس", "السديس"), ("أخرى", "أخرى")],
+        validators=[validators.InputRequired()],
+    )
+    custom_family_name = StringField(
+        "إسم العائلة غير أسرة السديس", validators=[validate_non_family_name]
+    )
+    relation = StringField(
+        "إن لم تكن من أسرة السديس فلطفاً حدد نوع العلاقة",
+        validators=[validate_non_family_name],
+    )
+    father_name = StringField("إسم الأب", validators=[validators.InputRequired()])
+    first_grand_name = StringField(
+        "إسم الجد الأول", validators=[validators.InputRequired()]
+    )
+    second_grand_name = StringField(
+        "إسم الجد الثاني", validators=[validators.InputRequired()]
+    )
+    third_grand_name = StringField(
+        "إسم الجد الثالث/فرع الأسرة", validators=[validators.InputRequired()]
+    )
+    age = SelectField(
+        "ماهي فئتك العمرية",
+        choices=[
+            ("", ""),
+            ("أقل من 10 سنوات", "أقل من 10 سنوات"),
+            ("من 11 سنة حتى 20 سنة", "من 11 سنة حتى 20 سنة"),
+            ("من 21 سنة حتى 40 سنة", "من 21 سنة حتى 40 سنة"),
+            ("من 41 سنة حتى 60 سنة", "من 41 سنة حتى 60 سنة"),
+            ("من 60 سنة فاكثر", "من 60 سنة فاكثر"),
+        ],
+        validators=[validators.InputRequired()],
+    )
+    gender = SelectField(
+        "الجنس",
+        choices=[
+            ("", ""),
+            ("ذكر", "ذكر"), 
+            ("أنثى", "أنثى")
+            ],
+        validators=[validators.InputRequired()],
+    )
+    city = StringField(
+        "مدينة العنوان الدائم لك", validators=[validators.InputRequired()]
+    )
+    attendance = SelectField(
+        "هل ستحضر اللقاء",
+        choices=[
+            ("", ""),
+            ("سوف أحضر باذن الله", "سوف أحضر باذن الله"),
+            ("أعتذر عن الحضور", "أعتذر عن الحضور"),
+        ],
+        validators=[validators.InputRequired()],
+    )
+    ideas = TextAreaField(
+        "هل لديك مشاركة أو فكرة تود تقديمها في الحفل ؟ نسعد بمعرفة ذلك"
+    )
+    submit = SubmitField("تسجيل")
+
+
+# Form for adding a new prize
+class PrizeForm(FlaskForm):
+    name = StringField("إسم الهدية", validators=[DataRequired()])
+    description = TextAreaField("الوصف")
+    allowed_families = StringField("العائلات المسموح لها")
+    allowed_age_range = SelectField(
+        "العمر المسموح به",
+        choices=[
+            ("الكل", "الكل"),
+            ("أقل من 10 سنوات", "أقل من 10 سنوات"),
+            ("من 11 سنة حتى 20 سنة", "من 11 سنة حتى 20 سنة"),
+            ("من 21 سنة حتى 40 سنة", "من 21 سنة حتى 40 سنة"),
+            ("من 41 سنة حتى 60 سنة", "من 41 سنة حتى 60 سنة"),
+            ("من 60 سنة فاكثر", "من 60 سنة فاكثر"),
+        ],
+    )
+    allowed_gender = SelectField(
+        "الجنس المسموح به", choices=[("الكل", "الكل"), ("ذكر", "ذكر"), ("أنثى", "أنثى")]
+    )
+    # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
+
+
+# Model for the filter form
+class FilterForm(FlaskForm):
+    family_name = MultiCheckboxField(
+        "إسم العائلة", choices=[("السديس", "السديس"), ("أخرى", "أخرى")]
+    )
+    age = MultiCheckboxField(
+        "الفئة العمرية",
+        choices=[
+            ("أقل من 10 سنوات", "أقل من 10 سنوات"),
+            ("من 11 سنة حتى 20 سنة", "من 11 سنة حتى 20 سنة"),
+            ("من 21 سنة حتى 40 سنة", "من 21 سنة حتى 40 سنة"),
+            ("من 41 سنة حتى 60 سنة", "من 41 سنة حتى 60 سنة"),
+            ("من 60 سنة فاكثر", "من 60 سنة فاكثر"),
+        ],
+    )
+    gender = MultiCheckboxField("الجنس", choices=[("ذكر", "ذكر"), ("أنثى", "أنثى")])
+    prize_id = IntegerField("الهدية", validators=[DataRequired()])
+    submit = SubmitField("بحث")
+
 
 # ==============================================================================
 # ''' Routes '''
 # ==============================================================================
-
 
 # Route for the home page
 @app.route("/", methods=["GET", "POST"])
@@ -401,12 +438,21 @@ def index():
     form = RegistrationForm()  # Create an instance of the RegistrationForm
     if request.method == "POST":
         phone_number = request.form["phone_number"]
+        # Check if the number is in the spreadsheet
+        if not is_value_in_sheet(
+            spreadsheet_key=SPREADSHEET_KEY,
+            sheet_name=GUESTS_SHEET_NAME,
+            target_value=phone_number,
+        ):
+            # If the number is not in the spreadsheet, redirect to the error page
+            return render_template("not_in_sheet.html")
+        
+        # Check if the phone number is not registered
         if not is_registered(phone_number):
             return redirect(url_for("register", phone_number=phone_number))
+        # Check if the phone number is alerady registered
         return redirect(url_for("registered", phone_number=phone_number))
-    return render_template(
-        "index.html", form=form
-    )  # Pass the form instance to the template
+    return render_template("index.html", form=form)
 
 
 # Route for the admin page

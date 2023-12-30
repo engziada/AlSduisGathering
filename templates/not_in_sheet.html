@@ -1,0 +1,21 @@
+{% extends 'master.html' %}
+
+{% block content %}
+    <div class="header">
+        <div class="text-center font-weight-bold">ببالغ السرور يسرنا دعوتكم للاجتماع السنوي لأسرة السديس</div>
+        <div class="text-center font-weight-bold">والذي سيقام بمشيئة الله في مدينة الرياض</div>
+        <div class="text-center font-weight-bold">يوم الجمعة 7-7-1445هـ الموافق 19-01-2024م في تمام الساعة 7:00 مساءً </div>
+        <hr>
+    </div>
+
+<div class="container text-center">
+    <form action="{{ url_for('index') }}" method="GET">
+        <div class="text-danger">
+            <p class="font-weight-bold">هذا الرقم غير مسجل بالصندوق</p>
+            <p class="font-weight-bold">يرجى التواصل مع واتس أب جوال الصندوق للتسجيل أولاً</p>
+        </div>
+        <hr>
+        <button type="submit" class="btn btn-primary">العودة للصفحة الرئيسية</button>
+    </form>
+</div>
+{% endblock %}

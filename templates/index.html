@@ -13,9 +13,9 @@
         {{ form.hidden_tag() }}
         <div class="form-group">
             <div class="text-info">
-                <p>أدخل رقم الجوال لإتمام عملية التسجيل</p>
+                <p> أدخل رقم الجوال لإتمام عملية التسجيل او لمراجعة بياناتك</p>
             </div>
-            {{ form.phone_number(class="form-control text-center font-weight-bold fs-3-rem", placeholder="من فضلك أدخل رقم الهاتف الجوال", pattern="^[0-9]{10,15}$", title="رقم الجوال بحد أدنى 10 أرقام و بحد أقصى 15 رقم (أرقام فقط)", required="required") }}
+            {{ form.phone_number(class="form-control text-center font-weight-bold fs-3-rem", placeholder="من فضلك أدخل رقم الهاتف الجوال", pattern="^[0-9]{9,15}$", title="رقم الجوال بحد أدنى 9 أرقام و بحد أقصى 15 رقم (أرقام فقط)", required="required") }}
         </div>
         <button type="submit" class="btn btn-primary">تسجيل</button>
     </form>
