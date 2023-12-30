@@ -1,37 +1,36 @@
 import io
 import os
-import secrets
-import pandas as pd
 import random
+import secrets
 
+import pandas as pd
 from flask import (
     Flask,
     Response,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
     send_file,
     url_for,
-    jsonify,
 )
+from flask_cors import CORS
+from flask_migrate import Migrate  # Import Flask-Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from PIL import Image, ImageDraw, ImageFont
-from sqlalchemy import func, or_, and_
-from flask_migrate import Migrate  # Import Flask-Migrate
-from flask_cors import CORS
-
+from sqlalchemy import and_, func, or_
 from wtforms import (
+    IntegerField,
     SelectField,
+    SelectMultipleField,
     StringField,
     SubmitField,
     TextAreaField,
     ValidationError,
     validators,
-    SelectMultipleField,
     widgets,
-    IntegerField,
 )
 from wtforms.validators import DataRequired
 
@@ -61,7 +60,7 @@ CORS(app)
 class Registration(db.Model):
     __tablename__ = "registration"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    phone_number = db.Column(db.Text, unique=True, nullable=False)
+    phone_number = db.Column(db.String(16), unique=True, nullable=False)
     first_name = db.Column(db.Text, nullable=False)
     family_name = db.Column(db.Text, nullable=False)
     father_name = db.Column(db.Text)
@@ -69,12 +68,12 @@ class Registration(db.Model):
     second_grand_name = db.Column(db.Text)
     third_grand_name = db.Column(db.Text)
     relation = db.Column(db.Text)
-    age = db.Column(db.Text)
-    gender = db.Column(db.Text)
+    age = db.Column(db.String(3))
+    gender = db.Column(db.String(15))
     city = db.Column(db.Text)
     attendance = db.Column(db.Text, nullable=False)
     ideas = db.Column(db.Text)
-    registration_number = db.Column(db.Text, unique=True)
+    registration_number = db.Column(db.String(4), unique=True)
     prize_id = db.Column(db.Integer, db.ForeignKey("prize.id", name="fk_reg_prize_id"))
     is_attended = db.Column(db.Boolean, default=False)
 
@@ -85,7 +84,7 @@ class Prize(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    guest_registration_number = db.Column(db.String(3))
+    guest_registration_number = db.Column(db.String(4))
     allowed_families = db.Column(db.String(100))
     allowed_age_range = db.Column(db.String(100))
     allowed_gender = db.Column(db.String(100))
@@ -269,7 +268,8 @@ class FilterForm(FlaskForm):
 def generate_registration_number():
     import random
 
-    return str(random.randint(100, 999))
+    return str(random.randint(1000, 9999))
+
 
 
 def is_registered(phone_number):
@@ -461,10 +461,14 @@ def register(phone_number):
     # Create the form instance and load data if it exists
     form = RegistrationForm(obj=existing_registration)
     form.phone_number.data = phone_number
-    if existing_registration:
-        if existing_registration.family_name not in ("أخرى", "السديس"):
-            form.custom_family_name.data = existing_registration.family_name
-            form.family_name.data = "أخرى"
+
+    if existing_registration and existing_registration.family_name not in (
+        "أخرى",
+        "السديس",
+    ):
+        form.custom_family_name.data = existing_registration.family_name
+        form.family_name.data = "أخرى"
+
     if request.method == "POST":
         if form.validate_on_submit():
             if existing_registration:
@@ -474,15 +478,18 @@ def register(phone_number):
             else:
                 new_registration = Registration()
                 form.populate_obj(new_registration)
+
                 if form.family_name.data == "أخرى":
                     new_registration.family_name = form.custom_family_name.data
                 else:
                     new_registration.family_name = form.family_name.data
+
                 new_registration.phone_number = phone_number
                 new_registration.registration_number = generate_registration_number()
                 db.session.add(new_registration)
                 db.session.commit()
                 flash("تم التسجيل بنجاح", "success")
+
             # Redirect to a success page or the landing page
             return redirect(url_for("registered", phone_number=phone_number))
         else:
@@ -492,6 +499,7 @@ def register(phone_number):
             return render_template(
                 "register.html", phone_number=phone_number, form=form, keep=True
             )
+
     return render_template(
         "register.html",
         phone_number=phone_number,
@@ -520,7 +528,7 @@ def delete(phone_number):
         db.session.commit()
         flash("تم حذف البيانات بنجاح", "success")
         return redirect(url_for("index"))
-    except:
+    except Exception:
         flash("فشلت محاولة حذف البيانات", "danger")
         return redirect(url_for("registered", phone_number=phone_number))
 
@@ -638,10 +646,22 @@ def delete_prize(id):
     prize = Prize.query.get(id)
     db.session.delete(prize)
     db.session.commit()
-
     flash("Prize deleted successfully!", "success")
     return redirect(url_for("list_prizes"))
 
+
+# Create route to delete registration number from the prize and search for registration
+# number in 'Registeration' table and delete 'prize_id'
+@app.route("/prizes/reset/<int:id>", methods=["POST"])
+def reset_prize(id):
+    sel_prize = Prize.query.get(id)
+    sel_regno=sel_prize.guest_registration_number
+    sel_prize.guest_registration_number = None
+    sel_reg= Registration.query.filter_by(registration_number=sel_regno).first()
+    sel_reg.prize_id=None
+    db.session.commit()
+    flash("Registration number deleted successfully!", "success")
+    return redirect(url_for("list_prizes"))
 
 # ------------------------------------------------------------------------------
 # ''' Withdrawal Routes '''
@@ -665,10 +685,6 @@ def get_filtered_reg_no(prize_id: int):
     allowed_families = sel_prize.allowed_families
     allowed_age_range = sel_prize.allowed_age_range
     allowed_gender = sel_prize.allowed_gender
-    # print('sel_prize: ',sel_prize.name)
-    # print('allowed_families: ',allowed_families)
-    # print('allowed_age_range: ',allowed_age_range)
-    # print('allowed_gender: ',allowed_gender)
 
     # Base query to filter records without a prize_id
     base_query = Registration.query.filter(
@@ -708,24 +724,8 @@ def get_filtered_reg_no(prize_id: int):
     else:
         final_query = base_query
 
-    print("*" * 50)
-    # print('filter_conditions: ',*filter_conditions)
-    print("query_params: ", final_query.statement.compile().params)
-    # print('query_compile: ',final_query.statement.compile())
-    print("query: ", final_query.statement)
-    print("*" * 50)
     # Execute the query to get the filtered records
     registrations_without_prize = final_query.all()
-
-    # Assure that list has more than 3 items
-    # if len(registrations_without_prize)==0:
-    #     registrations_without_prize.append(" .. ")
-    #     registrations_without_prize.append(" لا يوجد فائز ")
-    #     registrations_without_prize.append(" .. ")
-    # elif len(registrations_without_prize)<3:
-    #     registrations_without_prize.append(" .. ")
-    #     registrations_without_prize.append(" .. ")
-
     return registrations_without_prize
 
 
@@ -740,20 +740,16 @@ def shuffle_numbers(id):
     if registrations_without_prize and len(registrations_without_prize) > 1:
         # Randomly select one registration number
         selected_registration = random.choice(registrations_without_prize)
-        print("*" * 50)
-        print("selected_registration: ", selected_registration)
-        print("*" * 50)
-        rnd_reg_no = selected_registration.registration_number
+        # rnd_reg_no = selected_registration.registration_number
         # Reomve the select winner and move it to 2nd place
         registrations_without_prize.remove(selected_registration)
         registrations_without_prize.insert(1, selected_registration)
 
         regno_list = [
-            reg.registration_number.zfill(3) for reg in registrations_without_prize[:10]
+            reg.registration_number.zfill(4) for reg in registrations_without_prize[:10]
         ]
 
         # Return a response (if needed)
-        print(registrations_without_prize)
         return jsonify(
             regno_list=regno_list,
             winner=registrations_without_prize[1].registration_number,

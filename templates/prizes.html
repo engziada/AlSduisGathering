@@ -38,11 +38,19 @@
           <td>{{ prize.guest_registration_number }}</td>
           <td>
             <a href="{{ url_for('edit_prize', id=prize.id) }}" class="btn btn-primary btn-sm">تعديل</a>
+            
             <form action="{{ url_for('delete_prize', id=prize.id) }}" method="post" style="display: inline-block;">
               <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
             </form>
-            {%if prize.guest_registration_number==None%}
-            <button type="submit" class="btn btn-primary btn-sm" name="prize_id" value="{{ prize.id }}">إبدأ السحب</button>
+
+            {%if prize.guest_registration_number==None and not prize.is_next%}
+            <button type="submit" class="btn btn-success btn-sm" style="width: 8em" name="prize_id" value="{{ prize.id }}">إبدأ السحب</button>
+            {%elif prize.guest_registration_number==None and prize.is_next%}
+            <button type="submit" class="btn btn-primary btn-sm" style="width: 8em" onclick="window.location.reload">جاري السحب</button>
+            {%else%}
+            <form action="{{ url_for('reset_prize', id=prize.id) }}" method="post" style="display: inline-block;">
+              <button type="submit" class="btn btn-warning btn-sm" style="width: 8em" onclick="return confirm('هل أنت متأكد من إعادة التهيئة؟')">إعادة التهيئة</button>
+            </form>
             {%endif%}
           </td>
         </tr>
