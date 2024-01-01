@@ -322,28 +322,28 @@ class RegistrationForm(FlaskForm):
             ),
         ],
     )
-    first_name = StringField("إسمك الأول", validators=[validators.InputRequired()])
+    first_name = StringField("اسمك الأول", validators=[validators.InputRequired()])
     family_name = SelectField(
-        "إسم العائلة",
+        "اسم العائلة",
         choices=[("السديس", "السديس"), ("أخرى", "أخرى")],
         validators=[validators.InputRequired()],
     )
     custom_family_name = StringField(
-        "إسم العائلة غير أسرة السديس", validators=[validate_non_family_name]
+        "اسم العائلة غير أسرة السديس", validators=[validate_non_family_name]
     )
     relation = StringField(
         "إن لم تكن من أسرة السديس فلطفاً حدد نوع العلاقة",
         validators=[validate_non_family_name],
     )
-    father_name = StringField("إسم الأب", validators=[validators.InputRequired()])
+    father_name = StringField("اسم الأب", validators=[validators.InputRequired()])
     first_grand_name = StringField(
-        "إسم الجد الأول", validators=[validators.InputRequired()]
+        "اسم الجد الأول", validators=[validators.InputRequired()]
     )
     second_grand_name = StringField(
-        "إسم الجد الثاني", validators=[validators.InputRequired()]
+        "اسم الجد الثاني", validators=[validators.InputRequired()]
     )
     third_grand_name = StringField(
-        "إسم الجد الثالث/فرع الأسرة", validators=[validators.InputRequired()]
+        "اسم الجد الثالث/فرع الأسرة", validators=[validators.InputRequired()]
     )
     age = SelectField(
         "ماهي فئتك العمرية",
@@ -386,7 +386,7 @@ class RegistrationForm(FlaskForm):
 
 # Form for adding a new prize
 class PrizeForm(FlaskForm):
-    name = StringField("إسم الهدية", validators=[DataRequired()])
+    name = StringField("اسم الهدية", validators=[DataRequired()])
     description = TextAreaField("الوصف")
     allowed_families = StringField("العائلات المسموح لها")
     allowed_age_range = SelectField(
@@ -409,7 +409,7 @@ class PrizeForm(FlaskForm):
 # Model for the filter form
 class FilterForm(FlaskForm):
     family_name = MultiCheckboxField(
-        "إسم العائلة", choices=[("السديس", "السديس"), ("أخرى", "أخرى")]
+        "اسم العائلة", choices=[("السديس", "السديس"), ("أخرى", "أخرى")]
     )
     age = MultiCheckboxField(
         "الفئة العمرية",
