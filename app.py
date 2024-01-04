@@ -3,8 +3,10 @@ import os
 import random
 import secrets
 
+import arabic_reshaper
 import pandas as pd
 import requests
+from bidi.algorithm import get_display
 from bs4 import BeautifulSoup
 from flask import (
     Flask,
@@ -264,13 +266,19 @@ def create_image(content):
             or line == "\n\r"
         ):
             continue
+        
+        reshaped_text = arabic_reshaper.reshape(line)
+        bidi_text = get_display(reshaped_text)
+        
         text_color = "red" if idx in (3, 5, 7) else "black"
         left, top, right, bottom = font.getmask(line).getbbox()
         text_width, text_height = right - left, bottom - top
         x = (
             width - text_width
         ) // 2  # Calculate horizontal position for center alignment
-        draw.text((x, y), line, fill=text_color, font=font)
+        
+        draw.text((x, y), bidi_text, fill=text_color, font=font)
+        # draw.text((x, y), line, fill=text_color, font=font)
         y += font_size + 20  # Adjust vertical position for the next line
 
     # # Set the position to start drawing
