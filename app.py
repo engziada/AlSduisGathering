@@ -229,7 +229,7 @@ def create_image(content):
     font_size = 36
 
     static_dir = os.path.join(os.path.dirname(__file__), "static")
-    font_file_path = os.path.join(static_dir, "fonts", "Cairo-Bold.ttf")
+    font_file_path = os.path.join(static_dir, "fonts", "Tahoma.ttf")
     # Set the font and font size (you may need to download and specify an Arabic font)
     font = ImageFont.truetype(font_file_path, size=font_size)
 
