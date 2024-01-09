@@ -38,10 +38,17 @@
           <td>{{ prize.description }}</td>
           <td>{{ prize.guest_registration_number }}</td>
           <td>
-            <a href="{{ url_for('edit_prize', id=prize.id) }}" class="btn btn-primary btn-sm">تعديل</a>
-            
+            {% if not prize.is_next %}
+              <a href="{{ url_for('edit_prize', id=prize.id) }}" class="btn btn-primary btn-sm">تعديل</a>
+            {% else %}
+              <span class="btn btn-primary btn-sm disabled">تعديل</span>
+            {% endif %}
             <form action="{{ url_for('delete_prize', id=prize.id) }}" method="post" style="display: inline-block;">
-              <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
+              {% if not prize.is_next %}
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
+              {% else %}
+                <span class="btn btn-danger btn-sm disabled">حذف</span>
+              {% endif %}
             </form>
 
             {%if prize.guest_registration_number==None and not prize.is_next%}

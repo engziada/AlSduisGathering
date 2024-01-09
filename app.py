@@ -23,6 +23,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
+from icecream import ic
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import and_, or_
 from wtforms import (
@@ -797,20 +798,29 @@ def shuffle_numbers(id):
         registrations_without_prize.remove(selected_registration)
         registrations_without_prize.insert(1, selected_registration)
 
-        regno_list = [
-            reg.registration_number.zfill(4) for reg in registrations_without_prize[:10]
-        ]
+        # regno_list = [
+        #     reg.registration_number.zfill(4) for reg in registrations_without_prize[:10]
+        # ]
 
+        ic(registrations_without_prize[1].registration_number)
         # Return a response (if needed)
         return jsonify(
-            regno_list=regno_list,
+            # regno_list=regno_list,
             winner=registrations_without_prize[1].registration_number,
             winner_name=registrations_without_prize[1].first_name
-            + " "
-            + registrations_without_prize[1].family_name,
+                    + " "
+                    + registrations_without_prize[1].father_name
+                    + " "
+                    + registrations_without_prize[1].first_grand_name
+                    + " "
+                    + registrations_without_prize[1].second_grand_name
+                    + " "
+                    + registrations_without_prize[1].third_grand_name
+                    + " "
+                    + registrations_without_prize[1].family_name,
         )
     else:
-        return jsonify(regno_list=[], winner="", winner_name="")
+        return jsonify(winner="", winner_name="")
 
 
 @app.route("/confirm_prize/<int:prize_id>/<int:reg_no>", methods=["GET", "POST"])
