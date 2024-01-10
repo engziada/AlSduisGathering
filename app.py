@@ -636,7 +636,6 @@ def restore_db():
     flash("تم إستعادة قاعدة البيانات بنجاح", "success")
     return redirect(url_for("admin"))
 
-    
 
 
 # ------------------------------------------------------------------------------
@@ -804,9 +803,14 @@ def get_filtered_reg_no(prize_id: int):
         final_query = base_query.filter(and_(*filter_conditions))
     else:
         final_query = base_query
+    
+    # ic(str(final_query))
+    # for condition in filter_conditions:
+    #     ic(condition.compile().params)
 
     # Execute the query to get the filtered records
     registrations_without_prize = final_query.all()
+    # ic(registrations_without_prize)
     return registrations_without_prize
 
 
@@ -814,38 +818,38 @@ def get_filtered_reg_no(prize_id: int):
 @app.route("/shuffle_numbers/<int:id>", methods=["GET", "POST"])
 def shuffle_numbers(id):
     registrations_without_prize = get_filtered_reg_no(prize_id=id)
+    ic(registrations_without_prize)
     # registrations_without_prize = Registration.query.filter_by(prize_id=None).all()
     random.shuffle(registrations_without_prize)
 
     # If there are registrations without a prize
-    if registrations_without_prize and len(registrations_without_prize) > 1:
+    # if registrations_without_prize and len(registrations_without_prize) > 1:
+    if registrations_without_prize:
         # Randomly select one registration number
         selected_registration = random.choice(registrations_without_prize)
         # rnd_reg_no = selected_registration.registration_number
         # Reomve the select winner and move it to 2nd place
-        registrations_without_prize.remove(selected_registration)
-        registrations_without_prize.insert(1, selected_registration)
+        # registrations_without_prize.remove(selected_registration)
+        # registrations_without_prize.insert(1, selected_registration)
 
         # regno_list = [
         #     reg.registration_number.zfill(4) for reg in registrations_without_prize[:10]
         # ]
 
-        ic(registrations_without_prize[1].registration_number)
-        # Return a response (if needed)
+        ic(selected_registration)
         return jsonify(
-            # regno_list=regno_list,
-            winner=registrations_without_prize[1].registration_number,
-            winner_name=registrations_without_prize[1].first_name
+            winner=selected_registration.registration_number,
+            winner_name=selected_registration.first_name
                     + " "
-                    + registrations_without_prize[1].father_name
+                    + selected_registration.father_name
                     + " "
-                    + registrations_without_prize[1].first_grand_name
+                    + selected_registration.first_grand_name
                     + " "
-                    + registrations_without_prize[1].second_grand_name
+                    + selected_registration.second_grand_name
                     + " "
-                    + registrations_without_prize[1].third_grand_name
+                    + selected_registration.third_grand_name
                     + " "
-                    + registrations_without_prize[1].family_name,
+                    + selected_registration.family_name,
         )
     else:
         return jsonify(winner="", winner_name="")
