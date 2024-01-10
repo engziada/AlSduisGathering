@@ -8,5 +8,8 @@ entrypoint = "main.py"
 channel = "stable-23_05"
 
 [deployment]
-run = ["sh", "-c", "flask run"]
+run = ["sh", "-c", "python app.py"]
 deploymentTarget = "cloudrun"
+
+[env]
+files = "instance/registrations.db"
