@@ -33,11 +33,15 @@
     </div>
 </div>
 
-    <div class="text-left mt-4">
-      <a href="{{ url_for('export_to_excel') }}">حفظ كملف إكسل</a>
+    <div style="display: flex; justify-content: space-between; padding:15px; margin: 10px; border-color: brown; border-width: 2px; border-radius: 5px; border-style: solid;">
+        <a href="{{ url_for('export_to_excel') }}">تصدير كملف إكسل</a>
+        <a style="color: brown;"> | </a>
+        <a href="{{ url_for('backup_db') }}">حفظ نسخة إحتياطية</a>
+        <a style="color: brown;"> | </a>
+        <a href="{{ url_for('restore_db') }}"  onclick="return confirm('هل أنت متأكد من إسترجاع آخر نسخة من قاعدة البيانات؟')" >إسترجاع آخر نسخة</a>
     </div>
-    <table class="table table-striped table-responsive">
 
+    <table class="table table-striped table-responsive">
         <thead>
             <tr></tr>
                 <th class="border border-1">مسلسل</th>

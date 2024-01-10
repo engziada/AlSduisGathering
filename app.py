@@ -2,6 +2,7 @@ import io
 import os
 import random
 import secrets
+import shutil
 
 import arabic_reshaper
 import pandas as pd
@@ -435,9 +436,9 @@ class FilterForm(FlaskForm):
     submit = SubmitField("بحث")
 
 
-# ==============================================================================
-# ''' Routes '''
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# ''' Registration Routes '''
+# ------------------------------------------------------------------------------
 
 # Route for the home page
 @app.route("/", methods=["GET", "POST"])
@@ -460,49 +461,6 @@ def index():
         # Check if the phone number is alerady registered
         return redirect(url_for("registered", phone_number=phone_number))
     return render_template("index.html", form=form)
-
-
-# Route for the admin page
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-    page = request.args.get("page", 1, type=int)
-    per_page = 50  # Number of logs per page
-    guests_query = Registration.query
-    guests_page = guests_query.paginate(page=page, per_page=per_page)
-    guests_count = guests_query.count()
-    guest_attendance = guests_query.filter(
-        Registration.attendance == "سوف أحضر باذن الله"
-    ).count()
-    guest_not_attendance = guests_query.filter(
-        Registration.attendance == "أعتذر عن الحضور"
-    ).count()
-    guest_is_attended = guests_query.filter(Registration.is_attended == True).count()
-    guest_male = guests_query.filter(Registration.gender == "ذكر").count()
-    guest_female = guests_query.filter(Registration.gender == "أنثى").count()
-    return render_template(
-        "admin.html",
-        guests=guests_page,
-        guests_count=guests_count,
-        guest_attendance=guest_attendance,
-        guest_not_attendance=guest_not_attendance,
-        guest_is_attended=guest_is_attended,
-        guest_male=guest_male,
-        guest_female=guest_female,
-    )
-
-
-# Delete Guest
-@app.route("/delete_guest/<string:guest_phoneno>", methods=["GET", "POST"])
-def delete_guest(guest_phoneno):
-    try:
-        guest = Registration.query.filter_by(phone_number=guest_phoneno).first()
-        db.session.delete(guest)
-        db.session.commit()
-        flash("تم حذف بيانات الضيف بنجاح", "success")
-        return redirect(url_for("admin"))
-    except:
-        flash("فشلت عملية الحذف", "danger")
-        return redirect(url_for("admin"))
 
 
 # Route for the registration form
@@ -600,6 +558,53 @@ def convert_to_image():
     return Response(image_stream, content_type="image/png")
 
 
+# ------------------------------------------------------------------------------
+# ''' Admin Routes '''
+# ------------------------------------------------------------------------------
+
+# Route for the admin page
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    page = request.args.get("page", 1, type=int)
+    per_page = 50  # Number of logs per page
+    guests_query = Registration.query
+    guests_page = guests_query.paginate(page=page, per_page=per_page)
+    guests_count = guests_query.count()
+    guest_attendance = guests_query.filter(
+        Registration.attendance == "سوف أحضر باذن الله"
+    ).count()
+    guest_not_attendance = guests_query.filter(
+        Registration.attendance == "أعتذر عن الحضور"
+    ).count()
+    guest_is_attended = guests_query.filter(Registration.is_attended == True).count()
+    guest_male = guests_query.filter(Registration.gender == "ذكر").count()
+    guest_female = guests_query.filter(Registration.gender == "أنثى").count()
+    return render_template(
+        "admin.html",
+        guests=guests_page,
+        guests_count=guests_count,
+        guest_attendance=guest_attendance,
+        guest_not_attendance=guest_not_attendance,
+        guest_is_attended=guest_is_attended,
+        guest_male=guest_male,
+        guest_female=guest_female,
+    )
+
+
+# Delete Guest
+@app.route("/delete_guest/<string:guest_phoneno>", methods=["GET", "POST"])
+def delete_guest(guest_phoneno):
+    try:
+        guest = Registration.query.filter_by(phone_number=guest_phoneno).first()
+        db.session.delete(guest)
+        db.session.commit()
+        flash("تم حذف بيانات الضيف بنجاح", "success")
+        return redirect(url_for("admin"))
+    except:
+        flash("فشلت عملية الحذف", "danger")
+        return redirect(url_for("admin"))
+
+
 @app.route("/export_to_excel")
 def export_to_excel():
     items = get_user_data(None)
@@ -610,6 +615,28 @@ def export_to_excel():
     excel_file_path = "registeration.xlsx"
     df.to_excel(excel_file_path, index=False)
     return send_file(excel_file_path, as_attachment=True)
+
+
+# Route to take backup of the database
+@app.route("/backup_db")
+def backup_db():
+    source_file = 'instance/registrations.db'
+    backup_file = 'backup/registrations.db'
+    shutil.copy2(source_file, backup_file)
+    flash("تم عمل نسخة إحتياطية من قاعدة البيانات بنجاح", "success")
+    return send_file(backup_file, as_attachment=True)
+
+
+# Route to restore the database from backup
+@app.route("/restore_db")
+def restore_db():
+    backup_file = 'backup/registrations.db'
+    source_file = 'instance/registrations.db'
+    shutil.copy2(backup_file, source_file)
+    flash("تم إستعادة قاعدة البيانات بنجاح", "success")
+    return redirect(url_for("admin"))
+
+    
 
 
 # ------------------------------------------------------------------------------
@@ -666,7 +693,7 @@ def add_prize():
         db.session.add(prize)
         db.session.commit()
 
-        flash("Prize added successfully!", "success")
+        flash("تم إضافة الهدية بنجاح", "success")
         return redirect(url_for("list_prizes"))
 
     return render_template("add_prize.html", form=form)
@@ -687,7 +714,7 @@ def edit_prize(id):
 
         db.session.commit()
 
-        flash("Prize updated successfully!", "success")
+        flash("تم تعديل البيانات بنجاح", "success")
         return redirect(url_for("list_prizes"))
 
     return render_template("edit_prize.html", form=form, prize=prize)
@@ -697,9 +724,10 @@ def edit_prize(id):
 @app.route("/prizes/delete/<int:id>", methods=["POST"])
 def delete_prize(id):
     prize = Prize.query.get(id)
+    ic(prize)
     db.session.delete(prize)
     db.session.commit()
-    flash("Prize deleted successfully!", "success")
+    flash("تم حذف الهدية بنجاح", "success")
     return redirect(url_for("list_prizes"))
 
 
