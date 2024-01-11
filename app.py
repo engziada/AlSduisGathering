@@ -28,6 +28,7 @@ from icecream import ic
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import and_, or_
 from wtforms import (
+    HiddenField,
     IntegerField,
     SelectField,
     SelectMultipleField,
@@ -45,6 +46,8 @@ from wtforms.validators import DataRequired
 # Initialize Flask
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///registrations.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["Close_Registrations"] = False
 app.secret_key = secrets.token_hex(16)  
 
 # Initialize Flask-SQLAlchemy
@@ -321,7 +324,7 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = widgets.CheckboxInput()
 
 
-# Model for the registration form
+# Registration form
 class RegistrationForm(FlaskForm):
     phone_number = StringField(
         "رقم الهاتف الجوال",
@@ -394,7 +397,7 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField("تسجيل")
 
 
-# Form for adding a new prize
+# Adding a new prize
 class PrizeForm(FlaskForm):
     name = StringField("اسم الهدية", validators=[DataRequired()])
     description = TextAreaField("الوصف")
@@ -416,7 +419,7 @@ class PrizeForm(FlaskForm):
     # guest_registration_number = StringField('Guest Registration Number', validators=[DataRequired()])
 
 
-# Model for the filter form
+# Prize filter form
 class FilterForm(FlaskForm):
     family_name = MultiCheckboxField(
         "اسم العائلة", choices=[("السديس", "السديس"), ("أخرى", "أخرى")]
@@ -435,6 +438,10 @@ class FilterForm(FlaskForm):
     prize_id = IntegerField("الهدية", validators=[DataRequired()])
     submit = SubmitField("بحث")
 
+# Close the registration form
+class CloseRegistrationForm(FlaskForm):
+    close_registrations = app.config["Close_Registrations"]
+    close_status=HiddenField("close_status", default=close_registrations)
 
 # ------------------------------------------------------------------------------
 # ''' Registration Routes '''
@@ -443,6 +450,8 @@ class FilterForm(FlaskForm):
 # Route for the home page
 @app.route("/", methods=["GET", "POST"])
 def index():
+    close_registrations = app.config["Close_Registrations"]
+    
     form = RegistrationForm()  # Create an instance of the RegistrationForm
     if request.method == "POST":
         phone_number = request.form["phone_number"]
@@ -452,12 +461,18 @@ def index():
             sheet_name=GUESTS_SHEET_NAME,
             target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
         ):
-            # If the number is not in the spreadsheet, redirect to the error page
-            return render_template("not_in_sheet.html")
+            if close_registrations:
+                return render_template("closed.html")
+            else:
+                # If the number is not in the spreadsheet, redirect to the error page
+                return render_template("not_in_sheet.html")
         
         # Check if the phone number is not registered
         if not is_registered(phone_number):
-            return redirect(url_for("register", phone_number=phone_number))
+            if close_registrations:
+                return render_template("closed.html")
+            else:
+                return redirect(url_for("register", phone_number=phone_number))
         # Check if the phone number is alerady registered
         return redirect(url_for("registered", phone_number=phone_number))
     return render_template("index.html", form=form)
@@ -565,6 +580,14 @@ def convert_to_image():
 # Route for the admin page
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
+    close_registrations = app.config["Close_Registrations"]
+    close_registrations_form = CloseRegistrationForm()
+    if request.method == "POST" and close_registrations_form.validate_on_submit():
+        app.config["Close_Registrations"] = not close_registrations
+        close_registrations_form.close_status.data = not close_registrations
+        flash("تم تغيير حالة التسجيل بنجاح", "success")
+        return redirect(url_for("admin"))
+    
     page = request.args.get("page", 1, type=int)
     per_page = 50  # Number of logs per page
     guests_query = Registration.query
@@ -576,7 +599,7 @@ def admin():
     guest_not_attendance = guests_query.filter(
         Registration.attendance == "أعتذر عن الحضور"
     ).count()
-    guest_is_attended = guests_query.filter(Registration.is_attended == True).count()
+    guest_is_attended = guests_query.filter(Registration.is_attended is True).count()
     guest_male = guests_query.filter(Registration.gender == "ذكر").count()
     guest_female = guests_query.filter(Registration.gender == "أنثى").count()
     return render_template(
@@ -588,7 +611,10 @@ def admin():
         guest_is_attended=guest_is_attended,
         guest_male=guest_male,
         guest_female=guest_female,
+        close_registrations=close_registrations,
+        form=close_registrations_form,
     )
+    
 
 
 # Delete Guest

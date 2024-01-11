@@ -5,7 +5,7 @@
     <h1 class="col">الضيوف</h1>
     <hr>
     
-<div class="border border-1 text-center px-5 rounded-pill shadow">
+<div class="border border-1 text-center px-5">
     <div class="row pt-3">
         <div class="col-md-4">
                 <p>مجموع الضيوف: {{guests_count}}</p>
@@ -33,13 +33,27 @@
     </div>
 </div>
 
-    <div style="display: flex; justify-content: space-between; padding:15px; margin: 10px; border-color: brown; border-width: 2px; border-radius: 5px; border-style: solid;">
-        <a href="{{ url_for('export_to_excel') }}">تصدير كملف إكسل</a>
-        <a style="color: brown;"> | </a>
-        <a href="{{ url_for('backup_db') }}">حفظ نسخة إحتياطية</a>
-        <a style="color: brown;"> | </a>
-        <a href="{{ url_for('restore_db') }}"  onclick="return confirm('هل أنت متأكد من إسترجاع آخر نسخة من قاعدة البيانات؟')" >إسترجاع آخر نسخة</a>
+    <div style="display: flex; justify-content: space-between; padding:15px; margin-block: 15px; border-color: #085E9D; border-width: 2px; border-radius: 5px; border-style: solid;">
+        <a href="{{ url_for('export_to_excel') }}" class="text-danger">تصدير كملف إكسل</a>
+        <a style="color: 3085E9D;"> | </a>
+        <a href="{{ url_for('backup_db') }}" class="text-danger">حفظ نسخة إحتياطية</a>
+        <a style="color: 3085E9D;"> | </a>
+        <a href="{{ url_for('restore_db') }}" class="text-danger" onclick="return confirm('هل أنت متأكد من إسترجاع آخر نسخة من قاعدة البيانات؟')" >إسترجاع آخر نسخة</a>
     </div>
+
+    <div>
+        <form action="{{ url_for('admin') }}" method="post" class="py-3">
+            {{ form.hidden_tag() }}
+            <div class="row">
+                {%if close_registrations%}
+                <button type="submit" class="col btn btn-danger mx-5">التسجيل الان مغلق .. إضغط لإتاحة التسجيل</button>
+                {%else%}
+                <button type="submit" class="col btn btn-success mx-5">التسجيل الان متاح .. إضغط لإغلاق التسجيل</button>
+                {%endif%}
+            </div>
+        </form>
+    </div>
+
 
     <table class="table table-striped table-responsive">
         <thead>
