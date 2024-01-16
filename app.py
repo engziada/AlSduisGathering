@@ -27,6 +27,7 @@ from flask_wtf import FlaskForm
 from icecream import ic
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import and_, or_
+from werkzeug.utils import secure_filename
 from wtforms import (
     HiddenField,
     IntegerField,
@@ -314,7 +315,6 @@ def is_value_in_sheet(spreadsheet_url, sheet_name, target_value):
     else:
         print(f"Error fetching data from Spreadsheet. Status code: {response.status_code}")
         return False
-
 
 # ==============================================================================
 # ''' Forms '''
@@ -651,6 +651,19 @@ def backup_db():
     shutil.copy2(source_file, backup_file)
     flash("تم عمل نسخة إحتياطية من قاعدة البيانات بنجاح", "success")
     return send_file(backup_file, as_attachment=True)
+
+
+@app.route('/upload/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        ic(request.files)
+        file = request.files['file'] # the name of the file input field in the HTML form
+        if file:
+            # filename = secure_filename(file.filename) # sanitize the file name
+            file.save(os.path.join('instance', 'registrations.db')) # save the file to the upload folder
+            flash("تم إستعادة قاعدة البيانات بنجاح", "success")
+            return redirect(url_for("admin"))
+    return redirect(url_for("admin"))
 
 
 # Route to restore the database from backup
