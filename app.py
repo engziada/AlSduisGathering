@@ -18,6 +18,7 @@ from flask import (
     render_template,
     request,
     send_file,
+    session,
     url_for,
 )
 from flask_cors import CORS
@@ -61,6 +62,9 @@ CORS(app)
 # Google spreadsheet details
 SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRaFYu_tsagGZ16_B9ku1LurJxfe4JtN-6vW5a1_cAEEWkVsV7Wy9hm0lttiYTeBCnjOmnHJjTV6MNd/pubhtml'
 GUESTS_SHEET_NAME = 'Sheet1'
+
+# Passcode whitelist
+PASSCODE_WHITELIST = ['9753', '6290']
 
 # ==============================================================================
 # ''' Models '''
@@ -582,7 +586,18 @@ def convert_to_image():
 def admin():
     close_registrations = app.config["Close_Registrations"]
     close_registrations_form = CloseRegistrationForm()
-    if request.method == "POST" and close_registrations_form.validate_on_submit():
+    
+    # Check if the user is logged in
+    if request.method == "POST" and "login_form" in request.form:
+        passcode = request.form.get('passcode')
+        if passcode in PASSCODE_WHITELIST:
+            session['logged_in'] = True
+            return redirect(url_for('admin'))
+        else:
+            return redirect(url_for('index'))
+    
+    if (request.method == "POST" and "reg_status_form" in request.form 
+        and close_registrations_form.validate_on_submit()):
         app.config["Close_Registrations"] = not close_registrations
         close_registrations_form.close_status.data = not close_registrations
         flash("تم تغيير حالة التسجيل بنجاح", "success")
