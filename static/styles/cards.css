@@ -1,0 +1,53 @@
+
+.card_layout{
+    display: flex;
+    justify-content: space-evenly;
+    align-items: stretch;
+    flex-direction: row;
+}
+
+.card{
+    position: relative;
+    flex: 5;
+    /* height: 100vh; */
+    /* width: 100%;  */
+    /* text-align:center;  */
+    background-repeat: no-repeat; 
+    background-position: center; 
+    background-size: contain;
+}
+
+.sidebar{
+    flex:1;
+    display: flex;
+    flex-direction: column;
+    background-color: #085E9D;
+    color: #fff;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-evenly;
+}
+
+.card-select, .font-select{
+    margin-top: -285px; 
+}
+
+.card-select select{
+    width: 100%;
+}
+
+.font-select select{
+    width: 100%;
+}
+
+.card .input-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: none;
+    background-color: transparent;
+    font-size: calc(1vw + 1vh);
+    direction: rtl;
+    text-align: center;
+}

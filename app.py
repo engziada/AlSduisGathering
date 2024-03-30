@@ -3,6 +3,7 @@ import os
 import random
 import secrets
 import shutil
+from io import BytesIO
 
 import arabic_reshaper
 import pandas as pd
@@ -26,7 +27,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from icecream import ic
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, __version__, features
 from sqlalchemy import and_, or_
 from werkzeug.utils import secure_filename
 from wtforms import (
@@ -952,6 +953,79 @@ def confirm_attendence():
     return render_template(
         "confirm_attendence.html", form=form, result=""
     )  # Pass the form instance to the template
+
+# ------------------------------------------------------------------------------
+# ''' Cards Routes '''
+# ------------------------------------------------------------------------------
+
+@app.route("/card1")
+def card1():
+    selected = request.args.get('selected', '')
+    return render_template("card1.html",selected=selected)
+
+
+@app.route("/downloadcard1", methods=["POST"])
+def download_card1():
+    # print(">>>>>>>>>>>>>>>>>>","Hello")
+    text = request.form["text"]
+    font = request.form["font"]
+    if not font:
+        font = "ReemKufi-Bold.ttf"
+    font_path = os.path.join(app.static_folder, "fonts", font)
+
+    image_path = os.path.join(app.static_folder, "card1.jpg")
+    img = Image.open(image_path)
+    width, height = img.size
+    img_draw = ImageDraw.Draw(img)
+    img_draw.text(
+        xy=(width / 2 - len(text) * 10 - 150, height / 2 - 100),
+        text=text,
+        font=ImageFont.truetype(font_path, 72),
+        fill=(90, 110, 47),
+        direction="rtl",
+        language="arabic",
+    )
+    img_io = BytesIO()
+    img.save(img_io, "PNG")
+    img_io.seek(0)
+    return send_file(
+        img_io, mimetype="image/png", as_attachment=True, download_name="card.png"
+    )
+
+
+@app.route("/card2")
+def card2():
+    selected = request.args.get('selected', '')
+    return render_template("card2.html",selected=selected)
+
+
+@app.route("/downloadcard2", methods=["POST"])
+def download_card2():
+    # print(">>>>>>>>>>>>>>>>>>", "Hello")
+    text = request.form["text"]
+    font = request.form["font"]
+    if not font:
+        font = "ReemKufi-Bold.ttf"
+    font_path = os.path.join(app.static_folder, "fonts", font)
+
+    image_path = os.path.join(app.static_folder, "card2.jpg")
+    img = Image.open(image_path)
+    width, height = img.size
+    img_draw = ImageDraw.Draw(img)
+    img_draw.text(
+        xy=(width / 2 - len(text) * 10 - 60, height / 2),
+        text=text,
+        font=ImageFont.truetype(font_path, 72),
+        fill=(157, 108, 37),
+        direction="rtl",
+        language="arabic",
+    )
+    img_io = BytesIO()
+    img.save(img_io, "PNG")
+    img_io.seek(0)
+    return send_file(
+        img_io, mimetype="image/png", as_attachment=True, download_name="card.png"
+    )
 
 
 # ==============================================================================

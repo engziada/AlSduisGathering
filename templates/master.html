@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>التجمع السنوي لأسرة السديس</title>
+    <title>أسرة السديس</title>
 
     <!-- Add Bootstrap CSS from a CDN -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/bootstrap-rtl.min.css')}}">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/mystyle.css') }}">
 
@@ -19,8 +20,11 @@
     <!-- Material Symbols Outlined -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
-    <!-- <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet"> -->
+    <!-- Add Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Droid+Arabic+Kufi&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Alkalami&family=Amiri+Quran&family=Cairo&family=Reem+Kufi+Fun:wght@500&family=Reem+Kufi:wght@500&display=swap" rel="stylesheet">
+
+    {% block links %}{% endblock %}
 
     <!-- Add Bootstrap JavaScript (jQuery and Popper.js are required) -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
@@ -43,7 +47,7 @@
 <body>
     <div class="header">
         <img src="/static/Header.jpg" alt="Header Image">
-        <div class="welcome-message">اللقاء السنوي 23 لأسرة السديس</div>
+        <div class="welcome-message">بطاقات معايدة لأسرة السديس</div>
     </div>
 
     <div class="content">
