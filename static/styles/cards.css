@@ -1,23 +1,54 @@
 
 .card_layout{
     display: flex;
-    justify-content: space-evenly;
-    align-items: stretch;
-    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
 }
 
 .card{
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     position: relative;
-    flex: 5;
-    /* height: 100vh; */
-    /* width: 100%;  */
+    /* flex: 5; */
+    height: 70vh;
+    width: 100%; 
     /* text-align:center;  */
     background-repeat: no-repeat; 
     background-position: center; 
     background-size: contain;
 }
 
-.sidebar{
+
+.card .download-btn {
+    border: 1px #085E9D solid;
+    border-radius: 10px 0 0 10px;
+    padding-inline: 15px;
+    padding-block: 3px;
+    background-color: #ffffff9e;
+    margin-bottom: 20px;
+}
+
+.card .input-text {
+    position: absolute;
+    top: 320px; /* Adjust the pixel value as per your requirement */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: none;
+    background-color: transparent;
+    font-size: calc(1vw + 1vh);
+    direction: rtl;
+    text-align: center;
+}
+
+@media (max-width: 970px) {
+    .card .input-text {
+        top: 55%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+/* .sidebar{
     flex:1;
     display: flex;
     flex-direction: column;
@@ -26,9 +57,9 @@
     width: 100%;
     align-items: flex-start;
     justify-content: space-evenly;
-}
+} */
 
-.card-select, .font-select{
+/* .card-select, .font-select{
     margin-top: -285px; 
 }
 
@@ -38,16 +69,40 @@
 
 .font-select select{
     width: 100%;
+} */
+
+.sidebar label{
+    display: block;
 }
 
-.card .input-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: none;
-    background-color: transparent;
-    font-size: calc(1vw + 1vh);
-    direction: rtl;
+.sidebar label span{
+    border: 1px solid #085E9D;
+    border-radius: 50%;
+    padding-inline: 5px;
+    margin-left: 10px
+}
+
+.sidebar input[type="text"]{
+    width: 60%;
+    border: 1px solid #085E9D;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px 35px 15px 0px;
+}
+
+.font-select ul{
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.font-select ul li{
     text-align: center;
+    cursor: pointer;
 }

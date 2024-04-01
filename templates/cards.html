@@ -1,0 +1,15 @@
+{%extends 'master.html'%}
+
+{%block links%}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/cards.css') }}">
+{%endblock%}
+
+{%block content%}
+    {%include 'cards_menu.html'%}
+    <br>
+    <hr>
+    <br>
+    {%include 'card1.html'%}
+    <hr>
+    {%include 'card2.html'%}
+{%endblock%}

@@ -1,52 +1,68 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Cards</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='styles/cards.css') }}">
-    </head>
-    
-    <body>
-        <div class="sidebar">
-            <div class="card-select">
-                <label for="card-select">إختر البطاقة</label>
-                <select id="card-select">
-                    <option value="{{ url_for('card1') }}" {% if selected == '/card1' %}selected{% endif %}>بطاقة 1</option>
-                    <option value="{{ url_for('card2') }}" {% if selected == '/card2' %}selected{% endif %}>بطاقة 2</option>
-                </select>
-            </div>
+<div class="sidebar">
+    <!-- <div class="card-select">
+        <label for="card-select">إختر البطاقة</label>
+        <select id="card-select">
+            <option value="{{ url_for('card1') }}" {% if selected == '/card1' %}selected{% endif %}>بطاقة 1</option>
+            <option value="{{ url_for('card2') }}" {% if selected == '/card2' %}selected{% endif %}>بطاقة 2</option>
+        </select>
+    </div> -->
 
-            <div class="font-select">
-                <label for="card-select">إختر الخط</label>
-                <select id="font-select">
-                    <option style="font-family: 'Reem Kufi Fun', serif;" data-htmlfont="Reem Kufi Fun" data-localfont="ReemKufi-Bold.ttf">الخط الأول</option>
-                    <option style="font-family: 'Alkalami', serif;" data-htmlfont="Alkalami" data-localfont="Alkalami-Regular.ttf">الخط الثاني</option>
-                    <option style="font-family: 'Cairo', serif;" data-htmlfont="Cairo" data-localfont="Cairo-Bold.ttf">الخط الثالث</option>
-                </select>
-            </div>
-        </div>
-    </body>
+    <div class="font-select">
+        <label for="font-select"><span>.1.</span>إختر نوع الخط</label>
+        <ul id="font-select">
+            <li style="font-family: 'Reem Kufi Fun', serif;" data-htmlfont="Reem Kufi Fun" data-localfont="ReemKufi-Bold.ttf">الخط الأول</li>
+            <li style="font-family: 'Alkalami', serif;" data-htmlfont="Alkalami" data-localfont="Alkalami-Regular.ttf">الخط الثاني</li>
+            <li style="font-family: 'Cairo', serif;" data-htmlfont="Cairo" data-localfont="Cairo-Bold.ttf">الخط الثالث</li>
+        </ul>
+    </div>
 
-    <script>
-        document.getElementById('card-select').addEventListener('change', function() {
-            var selectedPage = this.value;
-                if (selectedPage) {
-                    window.location.href = selectedPage + '?selected=' + selectedPage;
-            }
-        });
-    </script>
+    <div class="name-input">
+        <label for="name-input"><span>.2.</span>أكتب الإسم</label>
+        <input type="text" class="input-text" id="name-input-input" placeholder="أدخل الإسم هنا" style="font-family: 'Reem Kufi Fun', serif; color: #566a29;" oninput="var inputs = document.getElementsByClassName('input-text'); var val = this.value; for(var i = 0; i < inputs.length; i++) { inputs[i].value = val; }">
+    </div>
 
-    <script>
-        document.getElementById('font-select').addEventListener('change', function () {
-            var selectedOption = this.options[this.selectedIndex];
-            var fontName = selectedOption.getAttribute('data-htmlfont');
-            var localFont = selectedOption.getAttribute('data-localfont');
-            var divToChange = document.getElementById('input-text');
+    <div class="third-step">
+        <label for="third-step"><span>.3.</span>قم بالمعاينة بالأسفل ثم قم بالضغط على زر الحفظ لتحميل نسخه على جهازك</label>
+    </div>
+</div>
 
-            document.getElementById('localfont').value = localFont;
+<!-- <script>
+document.getElementById('card-select').addEventListener('change', function() {
+    var selectedPage = this.value;
+        if (selectedPage) {
+            window.location.href = selectedPage + '?selected=' + selectedPage;
+    }
+});
+</script> -->
 
-            divToChange.style.fontFamily = fontName;
-        });
-    </script>
-</html>
+<!-- <script>
+document.getElementById('font-select').addEventListener('click', function () {
+    var selectedOption = this.querySelector('li[data-htmlfont]:checked');
+    var fontName = selectedOption.getAttribute('data-htmlfont');
+    var localFont = selectedOption.getAttribute('data-localfont');
+    var divToChange = document.getElementById('input-text');
+
+    document.getElementById('localfont').value = localFont;
+    divToChange.style.fontFamily = fontName;
+});
+</script> -->
+
+<script>
+    const fontSelect = document.getElementById('font-select');
+    fontSelect.addEventListener('click', function (event) {
+        if (event.target.nodeName === 'LI') {
+            const htmlFont = event.target.dataset.htmlfont;
+            const localFont = event.target.dataset.localfont;
+            const localFontInputs = document.querySelectorAll('.localfont');
+            const divsToChange = document.querySelectorAll('.input-text');
+
+            localFontInputs.forEach(function (input) {
+                input.value = localFont;
+            });
+
+            divsToChange.forEach(function (div) {
+                div.style.fontFamily = htmlFont;
+            });
+        }
+    });
+</script>

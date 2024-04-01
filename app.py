@@ -958,7 +958,13 @@ def confirm_attendence():
 # ''' Cards Routes '''
 # ------------------------------------------------------------------------------
 
-@app.route("/card1")
+
+@app.route("/cards")
+def cards():
+    return render_template("cards.html")
+
+
+@app.route("/card")
 def card1():
     selected = request.args.get('selected', '')
     return render_template("card1.html",selected=selected)
