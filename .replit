@@ -13,3 +13,7 @@ deploymentTarget = "cloudrun"
 
 [env]
 files = "instance/registrations.db"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
