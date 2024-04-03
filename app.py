@@ -975,19 +975,21 @@ def download_card1():
     # print(">>>>>>>>>>>>>>>>>>","Hello")
     text = request.form["text"]
     font = request.form["font"]
+    ic(font)
     if not font:
         font = "ReemKufi-Bold.ttf"
     font_path = os.path.join(app.static_folder, "fonts", font)
+    ic(font_path)
 
-    image_path = os.path.join(app.static_folder, "card1.jpg")
+    image_path = os.path.join(app.static_folder, "card3.jpg")
     img = Image.open(image_path)
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 150, height / 2 - 100),
+        xy=(width / 2 - len(text) * 10 - 150, height / 2 + 850),
         text=text,
-        font=ImageFont.truetype(font_path, 72),
-        fill=(90, 110, 47),
+        font=ImageFont.truetype(font_path, 96),
+        fill=(8, 94, 157),
         direction="rtl",
         language="arabic",
     )
@@ -1014,15 +1016,15 @@ def download_card2():
         font = "ReemKufi-Bold.ttf"
     font_path = os.path.join(app.static_folder, "fonts", font)
 
-    image_path = os.path.join(app.static_folder, "card2.jpg")
+    image_path = os.path.join(app.static_folder, "card4.jpg")
     img = Image.open(image_path)
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 60, height / 2),
+        xy=(width / 2 - len(text) * 10 - 150, height / 2 + 900),
         text=text,
-        font=ImageFont.truetype(font_path, 72),
-        fill=(157, 108, 37),
+        font=ImageFont.truetype(font_path, 96),
+        fill=(8, 94, 157),
         direction="rtl",
         language="arabic",
     )

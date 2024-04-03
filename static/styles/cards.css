@@ -27,12 +27,12 @@
     padding-inline: 15px;
     padding-block: 3px;
     background-color: #ffffff9e;
-    margin-bottom: 20px;
+    margin-bottom: 60px;
 }
 
 .card .input-text {
     position: absolute;
-    top: 320px; /* Adjust the pixel value as per your requirement */
+    top: 460px; /* Adjust the pixel value as per your requirement */
     left: 50%;
     transform: translate(-50%, -50%);
     border: none;
@@ -40,11 +40,24 @@
     font-size: calc(1vw + 1vh);
     direction: rtl;
     text-align: center;
+    color: #085E9D
 }
 
 @media (max-width: 970px) {
     .card .input-text {
-        top: 55%; /* Adjust the percentage value as per your requirement */
+        top: 75%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+@media (max-width: 470px) {
+    .card .input-text {
+        top: 70%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+@media (max-width: 405px) {
+    .card .input-text {
+        top: 65%; /* Adjust the percentage value as per your requirement */
     }
 }
 
