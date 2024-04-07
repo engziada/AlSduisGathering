@@ -986,10 +986,10 @@ def download_card1():
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 150, height / 2 + 850),
+        xy=(width / 2 - len(text) * 10 - 250, height / 2 + 650),
         text=text,
-        font=ImageFont.truetype(font_path, 96),
-        fill=(8, 94, 157),
+        font=ImageFont.truetype(font_path, 170),
+        fill=(0, 0, 0),
         direction="rtl",
         language="arabic",
     )
@@ -1021,10 +1021,10 @@ def download_card2():
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 150, height / 2 + 900),
+        xy=(width / 2 - len(text) * 10 - 250, height / 2 + 700),
         text=text,
-        font=ImageFont.truetype(font_path, 96),
-        fill=(8, 94, 157),
+        font=ImageFont.truetype(font_path, 170),
+        fill=(0, 0, 0),
         direction="rtl",
         language="arabic",
     )
