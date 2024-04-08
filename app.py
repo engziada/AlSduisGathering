@@ -964,12 +964,6 @@ def cards():
     return render_template("cards.html")
 
 
-@app.route("/card")
-def card1():
-    selected = request.args.get('selected', '')
-    return render_template("card1.html",selected=selected)
-
-
 @app.route("/downloadcard1", methods=["POST"])
 def download_card1():
     # print(">>>>>>>>>>>>>>>>>>","Hello")
@@ -981,14 +975,14 @@ def download_card1():
     font_path = os.path.join(app.static_folder, "fonts", font)
     ic(font_path)
 
-    image_path = os.path.join(app.static_folder, "card3.jpg")
+    image_path = os.path.join(app.static_folder, "card5.jpg")
     img = Image.open(image_path)
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 250, height / 2 + 650),
+        xy=(width / 2 - len(text) * 10 , height / 2 + 200),
         text=text,
-        font=ImageFont.truetype(font_path, 170),
+        font=ImageFont.truetype(font_path, 72),
         fill=(0, 0, 0),
         direction="rtl",
         language="arabic",
@@ -1001,12 +995,6 @@ def download_card1():
     )
 
 
-@app.route("/card2")
-def card2():
-    selected = request.args.get('selected', '')
-    return render_template("card2.html",selected=selected)
-
-
 @app.route("/downloadcard2", methods=["POST"])
 def download_card2():
     # print(">>>>>>>>>>>>>>>>>>", "Hello")
@@ -1016,14 +1004,14 @@ def download_card2():
         font = "ReemKufi-Bold.ttf"
     font_path = os.path.join(app.static_folder, "fonts", font)
 
-    image_path = os.path.join(app.static_folder, "card4.jpg")
+    image_path = os.path.join(app.static_folder, "card6.jpg")
     img = Image.open(image_path)
     width, height = img.size
     img_draw = ImageDraw.Draw(img)
     img_draw.text(
-        xy=(width / 2 - len(text) * 10 - 250, height / 2 + 700),
+        xy=(width / 2 - len(text) * 10 - 650, height / 2 + 800),
         text=text,
-        font=ImageFont.truetype(font_path, 170),
+        font=ImageFont.truetype(font_path, size=180),
         fill=(0, 0, 0),
         direction="rtl",
         language="arabic",

@@ -1,12 +1,4 @@
 <div class="sidebar">
-    <!-- <div class="card-select">
-        <label for="card-select">إختر البطاقة</label>
-        <select id="card-select">
-            <option value="{{ url_for('card1') }}" {% if selected == '/card1' %}selected{% endif %}>بطاقة 1</option>
-            <option value="{{ url_for('card2') }}" {% if selected == '/card2' %}selected{% endif %}>بطاقة 2</option>
-        </select>
-    </div> -->
-
     <div class="font-select">
         <label for="font-select"><span>.1.</span>إختر نوع الخط</label>
         <ul id="font-select">
@@ -25,27 +17,6 @@
         <label for="third-step"><span>.3.</span>قم بالمعاينة بالأسفل ثم قم بالضغط على زر الحفظ لتحميل نسخه على جهازك</label>
     </div>
 </div>
-
-<!-- <script>
-document.getElementById('card-select').addEventListener('change', function() {
-    var selectedPage = this.value;
-        if (selectedPage) {
-            window.location.href = selectedPage + '?selected=' + selectedPage;
-    }
-});
-</script> -->
-
-<!-- <script>
-document.getElementById('font-select').addEventListener('click', function () {
-    var selectedOption = this.querySelector('li[data-htmlfont]:checked');
-    var fontName = selectedOption.getAttribute('data-htmlfont');
-    var localFont = selectedOption.getAttribute('data-localfont');
-    var divToChange = document.getElementById('input-text');
-
-    document.getElementById('localfont').value = localFont;
-    divToChange.style.fontFamily = fontName;
-});
-</script> -->
 
 <script>
     const fontSelect = document.getElementById('font-select');

@@ -6,7 +6,7 @@
     flex-direction: column;
 }
 
-.card{
+.card1{
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -20,8 +20,7 @@
     background-size: contain;
 }
 
-
-.card .download-btn {
+.card1 .download-btn {
     border: 1px #085E9D solid;
     border-radius: 10px 0 0 10px;
     padding-inline: 15px;
@@ -30,7 +29,63 @@
     margin-bottom: 60px;
 }
 
-.card .input-text {
+.card1 .input-text {
+    position: absolute;
+    top: 460px; /* Adjust the pixel value as per your requirement */
+    left: 60%;
+    transform: translate(-50%, -50%);
+    border: none;
+    background-color: transparent;
+    font-size: calc(2vw + 1.5vh);
+    direction: rtl;
+    text-align: center;
+    color: #000
+}
+
+@media (max-width: 970px) {
+    .card1 .input-text {
+        top: 75%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+@media (max-width: 470px) {
+    .card1 .input-text {
+        top: 70%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+@media (max-width: 405px) {
+    .card1 .input-text {
+        top: 65%; /* Adjust the percentage value as per your requirement */
+    }
+}
+
+
+
+.card2{
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+    /* flex: 5; */
+    height: 70vh;
+    width: 100%; 
+    /* text-align:center;  */
+    background-repeat: no-repeat; 
+    background-position: center; 
+    background-size: contain;
+}
+
+.card2 .download-btn {
+    border: 1px #085E9D solid;
+    border-radius: 10px 0 0 10px;
+    padding-inline: 15px;
+    padding-block: 3px;
+    background-color: #ffffff9e;
+    margin-bottom: 60px;
+}
+
+.card2 .input-text {
     position: absolute;
     top: 460px; /* Adjust the pixel value as per your requirement */
     left: 50%;
@@ -44,22 +99,23 @@
 }
 
 @media (max-width: 970px) {
-    .card .input-text {
+    .card2 .input-text {
         top: 75%; /* Adjust the percentage value as per your requirement */
     }
 }
 
 @media (max-width: 470px) {
-    .card .input-text {
+    .card2 .input-text {
         top: 70%; /* Adjust the percentage value as per your requirement */
     }
 }
 
 @media (max-width: 405px) {
-    .card .input-text {
+    .card2 .input-text {
         top: 65%; /* Adjust the percentage value as per your requirement */
     }
 }
+
 
 /* .sidebar{
     flex:1;
