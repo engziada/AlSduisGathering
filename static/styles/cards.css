@@ -27,11 +27,23 @@
     padding-block: 3px;
     background-color: #ffffff9e;
     margin-bottom: 60px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    flex-wrap: wrap;
+}
+
+.card1 .download-btn span{
+    font-size: xx-large;
+    padding-inline: 10px;
+    color: #085E9D;
 }
 
 .card1 .input-text {
     position: absolute;
-    top: 460px; /* Adjust the pixel value as per your requirement */
+    top: 435px; /* Adjust the pixel value as per your requirement */
     left: 60%;
     transform: translate(-50%, -50%);
     border: none;
@@ -83,6 +95,18 @@
     padding-block: 3px;
     background-color: #ffffff9e;
     margin-bottom: 60px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    flex-wrap: wrap;
+}
+
+.card2 .download-btn span{
+    font-size: xx-large;
+    padding-inline: 10px;
+    color: #085E9D;
 }
 
 .card2 .input-text {

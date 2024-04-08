@@ -1,11 +1,16 @@
 <div class="card_layout">
-	<div class="card2" style="background-image: url({{ url_for('static', filename='card6.jpg') }});">
+	<div class="card2" style="background-image: url({{ url_for('static', filename='card7.jpg') }});">
 		<form method="POST" action="{{ url_for('download_card2') }}">
-				<!-- <img src="{{ url_for('static', filename='card1.jpg') }}" alt="Image" style="max-width: 100%; height: 100% ;"> -->
-				<input class="input-text" type="text" name="text" id="input-text" placeholder="أدخل أسمك هنا" style="font-family: 'Reem Kufi Fun'"  >
-				<input class="localfont" type="hidden" name="font" id="localfont">
+			<!-- <img src="{{ url_for('static', filename='card1.jpg') }}" alt="Image" style="max-width: 100%; height: 100% ;"> -->
+			<input class="input-text" type="text" name="text" id="input-text" placeholder="أدخل أسمك هنا" style="font-family: 'Reem Kufi Fun'"  >
+			<input class="localfont" type="hidden" name="font" id="localfont">
 
-				<button class="download-btn" type="submit">حفظ نسخه على الجهاز</button>
+			<button class="download-btn" type="submit">
+				حفظ نسخه على الجهاز
+				<span class="material-symbols-outlined">
+					download_for_offline
+				</span>
+			</button>
 		</form>
 	</div>
 </div>
