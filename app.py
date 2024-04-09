@@ -971,7 +971,7 @@ def download_card1():
     font = request.form["font"]
     ic(font)
     if not font:
-        font = "ReemKufi-Bold.ttf"
+        font = "ReemKufi-Regular.ttf"
     font_path = os.path.join(app.static_folder, "fonts", font)
     ic(font_path)
 
@@ -1001,7 +1001,7 @@ def download_card2():
     text = request.form["text"]
     font = request.form["font"]
     if not font:
-        font = "ReemKufi-Bold.ttf"
+        font = "ReemKufi-Regular.ttf"
     font_path = os.path.join(app.static_folder, "fonts", font)
 
     image_path = os.path.join(app.static_folder, "card7.jpg")

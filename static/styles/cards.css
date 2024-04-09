@@ -48,7 +48,7 @@
     transform: translate(-50%, -50%);
     border: none;
     background-color: transparent;
-    font-size: calc(2vw + 1.5vh);
+    font-size: calc(1.5vw + 2vh);
     direction: rtl;
     text-align: center;
     color: #000
@@ -116,7 +116,7 @@
     transform: translate(-50%, -50%);
     border: none;
     background-color: transparent;
-    font-size: calc(2vw + 1.5vh);
+    font-size: calc(1.5vw + 2vh);
     direction: rtl;
     text-align: center;
     color: #000
