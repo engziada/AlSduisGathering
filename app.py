@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 from bidi.algorithm import get_display
 from bs4 import BeautifulSoup
+from datetime import datetime
 from flask import (
     Flask,
     Response,
@@ -28,6 +29,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from icecream import ic
 from PIL import Image, ImageDraw, ImageFont, __version__, features
+from openpyxl import Workbook
 from sqlalchemy import and_, or_
 from werkzeug.utils import secure_filename
 from wtforms import (
@@ -43,6 +45,8 @@ from wtforms import (
     widgets,
 )
 from wtforms.validators import DataRequired
+import json
+from functools import wraps
 
 # ==============================================================================
 
@@ -124,6 +128,22 @@ class Prize(db.Model):
         self.allowed_gender = allowed_gender
         self.is_next = is_next
 
+
+# Define the Children model for the database table
+class Children(db.Model):
+    __tablename__ = "children"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    mother_phone = db.Column(db.String(16), db.ForeignKey('registration.phone_number'), nullable=False)
+    first_name = db.Column(db.Text, nullable=False)
+    father_name = db.Column(db.Text, nullable=False)
+    grandfather_name = db.Column(db.Text, nullable=False)
+    family_name = db.Column(db.Text, nullable=False)
+    gender = db.Column(db.String(15), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    registration_number = db.Column(db.String(4))  # Same as mother's
+
+    def __repr__(self):
+        return f'<Child {self.first_name} {self.father_name}>'
 
 # ==============================================================================
 #   ''' Database and Tables '''
@@ -381,7 +401,7 @@ class RegistrationForm(FlaskForm):
             ("", ""),
             ("ذكر", "ذكر"), 
             ("أنثى", "أنثى")
-            ],
+        ],
         validators=[validators.InputRequired()],
     )
     city = StringField(
@@ -399,6 +419,7 @@ class RegistrationForm(FlaskForm):
     ideas = TextAreaField(
         "هل لديك مشاركة أو فكرة تود تقديمها في الحفل ؟ نسعد بمعرفة ذلك"
     )
+    children_data = TextAreaField("بيانات الأطفال")
     submit = SubmitField("تسجيل")
 
 
@@ -484,118 +505,242 @@ def index():
 
 
 # Route for the registration form
-@app.route("/register/<phone_number>", methods=["POST", "GET"])
+@app.route("/register/<phone_number>", methods=["GET", "POST"])
 def register(phone_number):
-    existing_registration = Registration.query.filter_by(
-        phone_number=phone_number
-    ).first()
-    # Create the form instance and load data if it exists
-    form = RegistrationForm(obj=existing_registration)
+    if app.config["Close_Registrations"]:
+        return redirect(url_for("index"))
+    
+    # Verify phone number is in spreadsheet
+    if not is_value_in_sheet(
+        spreadsheet_url=SPREADSHEET_URL,
+        sheet_name=GUESTS_SHEET_NAME,
+        target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
+    ):
+        return redirect(url_for("index"))
+
+    # Get existing registration data
+    registration = Registration.query.filter_by(phone_number=phone_number).first()
+    form = RegistrationForm()
+
+    # Always set the phone number in the form
     form.phone_number.data = phone_number
 
-    if existing_registration and existing_registration.family_name not in (
-        "أخرى",
-        "السديس",
-    ):
-        form.custom_family_name.data = existing_registration.family_name
-        form.family_name.data = "أخرى"
+    if registration:
+        # Pre-fill form with existing data
+        if not form.is_submitted():
+            # No need to set phone_number again as it's already set above
+            form.first_name.data = registration.first_name
+            form.family_name.data = registration.family_name
+            form.father_name.data = registration.father_name
+            form.first_grand_name.data = registration.first_grand_name
+            form.second_grand_name.data = registration.second_grand_name
+            form.third_grand_name.data = registration.third_grand_name
+            form.relation.data = registration.relation
+            form.age.data = registration.age
+            form.gender.data = registration.gender
+            form.city.data = registration.city
+            form.attendance.data = registration.attendance
+            form.ideas.data = registration.ideas
 
-    if request.method == "POST":
-        if form.validate_on_submit():
-            if existing_registration:
-                # Update the existing registration with form data
-                form.populate_obj(existing_registration)
-                db.session.commit()
+            # Get children data if any
+            if registration.gender == "أنثى":
+                children = Children.query.filter_by(mother_phone=phone_number).all()
+                children_data = []
+                for child in children:
+                    children_data.append({
+                        'first_name': child.first_name,
+                        'father_name': child.father_name,
+                        'grandfather_name': child.grandfather_name,
+                        'family_name': child.family_name,
+                        'gender': child.gender,
+                        'age': child.age
+                    })
+                form.children_data.data = json.dumps(children_data)
+
+    if form.validate_on_submit():
+        try:
+            # If updating existing registration
+            if registration:
+                registration.first_name = form.first_name.data
+                registration.family_name = form.family_name.data
+                registration.father_name = form.father_name.data
+                registration.first_grand_name = form.first_grand_name.data
+                registration.second_grand_name = form.second_grand_name.data
+                registration.third_grand_name = form.third_grand_name.data
+                registration.relation = form.relation.data if form.family_name.data == "أخرى" else None
+                registration.age = form.age.data
+                registration.gender = form.gender.data
+                registration.city = form.city.data
+                registration.attendance = form.attendance.data
+                registration.ideas = form.ideas.data
+
+                # Delete existing children
+                Children.query.filter_by(mother_phone=phone_number).delete()
             else:
-                new_registration = Registration()
-                form.populate_obj(new_registration)
+                # Create new registration
+                registration = Registration(
+                    phone_number=form.phone_number.data,
+                    first_name=form.first_name.data,
+                    family_name=form.family_name.data,
+                    father_name=form.father_name.data,
+                    first_grand_name=form.first_grand_name.data,
+                    second_grand_name=form.second_grand_name.data,
+                    third_grand_name=form.third_grand_name.data,
+                    relation=form.relation.data if form.family_name.data == "أخرى" else None,
+                    age=form.age.data,
+                    gender=form.gender.data,
+                    city=form.city.data,
+                    attendance=form.attendance.data,
+                    ideas=form.ideas.data,
+                    registration_number=generate_registration_number(),
+                )
+                db.session.add(registration)
+                db.session.flush()
 
-                if form.family_name.data == "أخرى":
-                    new_registration.family_name = form.custom_family_name.data
-                else:
-                    new_registration.family_name = form.family_name.data
+            # Handle children registration if the participant is female
+            if form.gender.data == "أنثى":
+                try:
+                    children_data = json.loads(request.form.get('children_data', '[]'))
+                    for child_data in children_data:
+                        child = Children(
+                            mother_phone=phone_number,
+                            first_name=child_data['first_name'],
+                            father_name=child_data['father_name'],
+                            grandfather_name=child_data['grandfather_name'],
+                            family_name=child_data['family_name'],
+                            gender=child_data['gender'],
+                            age=child_data['age'],
+                            registration_number=generate_registration_number()
+                        )
+                        db.session.add(child)
+                except json.JSONDecodeError as e:
+                    app.logger.error(f"Error parsing children data: {str(e)}")
+                    flash("حدث خطأ في معالجة بيانات الأطفال", "error")
+                    return render_template("register.html", form=form)
 
-                new_registration.phone_number = phone_number
-                new_registration.registration_number = generate_registration_number()
-                db.session.add(new_registration)
-                db.session.commit()
+            db.session.commit()
+            if registration:
+                flash("تم تحديث البيانات بنجاح", "success")
+            else:
                 flash("تم التسجيل بنجاح", "success")
-
-            # Redirect to a success page or the landing page
             return redirect(url_for("registered", phone_number=phone_number))
-        else:
-            # Handle errors
-            flash("حدث خطأ ما", "error")
-            flash(form.errors, "error")
-            return render_template(
-                "register.html", phone_number=phone_number, form=form, keep=True
-            )
+        
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error during registration: {str(e)}")
+            flash("حدث خطأ أثناء التسجيل", "error")
+            return render_template("register.html", form=form, registration=registration, phone_number=phone_number)
 
-    return render_template(
-        "register.html",
-        phone_number=phone_number,
-        form=form,
-        keep=bool(form.custom_family_name.data),
-    )
+    return render_template("register.html", form=form, registration=registration, phone_number=phone_number)
 
 
 @app.route("/registered/<phone_number>", methods=["POST", "GET"])
 def registered(phone_number):
-    user_data = get_user_data(phone_number)
-    if user_data:
-        return render_template("registered.html", user_data=user_data)
-    else:
-        flash("رقم الجوال غير مسجل من قبل", "error")
+    # Check if registration exists
+    if not is_registered(phone_number):
         return redirect(url_for("index"))
+    return render_template("registered.html", user_data=get_user_data(phone_number))
 
-
-@app.route("/delete/<phone_number>", methods=["GET"])
+@app.route("/delete/<phone_number>", methods=["POST"])
 def delete(phone_number):
-    try:
-        existing_registration = Registration.query.filter_by(
-            phone_number=phone_number
-        ).first()
-        db.session.delete(existing_registration)
-        db.session.commit()
-        flash("تم حذف البيانات بنجاح", "success")
+    # Verify registration exists
+    registration = Registration.query.filter_by(phone_number=phone_number).first()
+    if not registration:
+        flash("التسجيل غير موجود", "error")
         return redirect(url_for("index"))
-    except Exception:
-        flash("فشلت محاولة حذف البيانات", "danger")
-        return redirect(url_for("registered", phone_number=phone_number))
-
-
-@app.route("/convert_to_image", methods=["POST"])
-def convert_to_image():
-    # Get the content from the request (e.g., JSON or form data)
-    content = request.form["content"]
-    # Create an image with the content
-    image = create_image(content)
-    # Save the image to a byte stream
-    image_stream = io.BytesIO()
-    image.save(image_stream, format="PNG")
-    image_stream.seek(0)
-    # Return the image as a response
-    return Response(image_stream, content_type="image/png")
-
-
-# ------------------------------------------------------------------------------
-# ''' Admin Routes '''
-# ------------------------------------------------------------------------------
-
-# Route for the admin page
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-    close_registrations = app.config["Close_Registrations"]
-    close_registrations_form = CloseRegistrationForm()
     
-    # Check if the user is logged in
-    if request.method == "POST" and "login_form" in request.form:
+    try:
+        # Delete associated children first
+        Children.query.filter_by(mother_phone=phone_number).delete()
+        # Delete registration
+        db.session.delete(registration)
+        db.session.commit()
+        flash("تم حذف التسجيل بنجاح", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("حدث خطأ أثناء حذف التسجيل", "error")
+        
+    return redirect(url_for("index"))
+
+# Admin authentication decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            flash('يجب تسجيل الدخول أولاً', 'warning')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Admin login route
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin'))
+        
+    form = FlaskForm()
+    if request.method == "POST":
         passcode = request.form.get('passcode')
         if passcode in PASSCODE_WHITELIST:
-            session['logged_in'] = True
+            session['admin_logged_in'] = True
+            flash('تم تسجيل الدخول بنجاح', 'success')
             return redirect(url_for('admin'))
-        else:
-            return redirect(url_for('index'))
+        flash('كلمة المرور غير صحيحة', 'error')
+    return render_template('admin_login.html', form=form)
+
+# Admin logout route
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('تم تسجيل الخروج بنجاح', 'success')
+    return redirect(url_for('index'))
+
+@app.route("/admin/", methods=["GET"])
+@app.route("/admin", methods=["GET"])
+@admin_required
+def admin():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Get guest statistics
+    guests_query = Registration.query
+    guests = guests_query.order_by(Registration.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    guests_count = guests_query.count()
+    guest_attendance = guests_query.filter(
+        Registration.attendance == "سوف أحضر باذن الله"
+    ).count()
+    guest_not_attendance = guests_query.filter(
+        Registration.attendance == "أعتذر عن الحضور"
+    ).count()
+    guest_is_attended = guests_query.filter(Registration.is_attended.is_(True)).count()
+    guest_male = guests_query.filter(Registration.gender == "ذكر").count()
+    guest_female = guests_query.filter(Registration.gender == "أنثى").count()
+    
+    # Create form for registration status
+    close_registrations_form = CloseRegistrationForm()
+    close_registrations = app.config["Close_Registrations"]
+    
+    return render_template(
+        'admin.html',
+        guests=guests,
+        guests_count=guests_count,
+        guest_attendance=guest_attendance,
+        guest_not_attendance=guest_not_attendance,
+        guest_is_attended=guest_is_attended,
+        guest_male=guest_male,
+        guest_female=guest_female,
+        close_registrations=close_registrations,
+        form=close_registrations_form
+    )
+
+@app.route("/admin/", methods=["POST"])
+@app.route("/admin", methods=["POST"])
+@admin_required
+def admin_post():
+    close_registrations = app.config["Close_Registrations"]
+    close_registrations_form = CloseRegistrationForm()
     
     if (request.method == "POST" and "reg_status_form" in request.form 
         and close_registrations_form.validate_on_submit()):
@@ -605,33 +750,11 @@ def admin():
         return redirect(url_for("admin"))
     
     page = request.args.get("page", 1, type=int)
-    per_page = 50  # Number of logs per page
-    guests_query = Registration.query
-    guests_page = guests_query.paginate(page=page, per_page=per_page)
-    guests_count = guests_query.count()
-    guest_attendance = guests_query.filter(
-        Registration.attendance == "سوف أحضر باذن الله"
-    ).count()
-    guest_not_attendance = guests_query.filter(
-        Registration.attendance == "أعتذر عن الحضور"
-    ).count()
-    guest_is_attended = guests_query.filter(Registration.is_attended is True).count()
-    guest_male = guests_query.filter(Registration.gender == "ذكر").count()
-    guest_female = guests_query.filter(Registration.gender == "أنثى").count()
-    return render_template(
-        "admin.html",
-        guests=guests_page,
-        guests_count=guests_count,
-        guest_attendance=guest_attendance,
-        guest_not_attendance=guest_not_attendance,
-        guest_is_attended=guest_is_attended,
-        guest_male=guest_male,
-        guest_female=guest_female,
-        close_registrations=close_registrations,
-        form=close_registrations_form,
+    per_page = 10
+    guests = Registration.query.order_by(Registration.id.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
     )
-    
-
+    return render_template('admin.html', guests=guests)
 
 # Delete Guest
 @app.route("/delete_guest/<string:guest_phoneno>", methods=["GET", "POST"])
@@ -647,20 +770,120 @@ def delete_guest(guest_phoneno):
         return redirect(url_for("admin"))
 
 
-@app.route("/export_to_excel")
+@app.route("/export")
+@admin_required
 def export_to_excel():
-    items = get_user_data(None)
-    if not items:
-        return None
+    registrations = Registration.query.all()
+    children = Children.query.all()
 
-    df = pd.DataFrame(items)
-    excel_file_path = "registeration.xlsx"
-    df.to_excel(excel_file_path, index=False)
-    return send_file(excel_file_path, as_attachment=True)
+    # Create registration DataFrame
+    registration_data = []
+    for reg in registrations:
+        registration_data.append({
+            'رقم التسجيل': reg.registration_number,
+            'رقم الجوال': reg.phone_number,
+            'الاسم الأول': reg.first_name,
+            'اسم العائلة': reg.family_name,
+            'اسم الأب': reg.father_name,
+            'اسم الجد الأول': reg.first_grand_name,
+            'اسم الجد الثاني': reg.second_grand_name,
+            'اسم الجد الثالث': reg.third_grand_name,
+            'العلاقة': reg.relation,
+            'العمر': reg.age,
+            'الجنس': reg.gender,
+            'المدينة': reg.city,
+            'الحضور': reg.attendance,
+            'الأفكار': reg.ideas
+        })
+    
+    # Create children DataFrame
+    children_data = []
+    for child in children:
+        children_data.append({
+            'رقم تسجيل الوالدة': child.registration_number,
+            'رقم جوال الوالدة': child.mother_phone,
+            'اسم الطفل': child.first_name,
+            'اسم الأب': child.father_name,
+            'اسم الجد': child.grandfather_name,
+            'اسم العائلة': child.family_name,
+            'الجنس': child.gender,
+            'العمر': child.age
+        })
+
+    # Create Excel writer object
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Write registrations to first sheet
+        pd.DataFrame(registration_data).to_excel(writer, sheet_name='التسجيلات', index=False)
+        # Write children to second sheet
+        pd.DataFrame(children_data).to_excel(writer, sheet_name='الأطفال', index=False)
+
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='registrations.xlsx'
+    )
+
+
+@app.route("/export_children_excel")
+@admin_required
+def export_children_excel():
+    # Query all children
+    children = Children.query.all()
+    
+    # Create a new workbook and select the active sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "بيانات الأطفال"
+    
+    # Add headers
+    headers = ["رقم التسجيل", "رقم جوال الأم", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر"]
+    ws.append(headers)
+    
+    # Add data
+    for child in children:
+        ws.append([
+            child.registration_number,
+            child.mother_phone,
+            child.first_name,
+            child.father_name,
+            child.grandfather_name,
+            child.family_name,
+            child.gender,
+            child.age
+        ])
+    
+    # Set column width
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    # Create response
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=f"children_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    )
 
 
 # Route to take backup of the database
 @app.route("/backup_db")
+@admin_required
 def backup_db():
     source_file = 'instance/registrations.db'
     backup_file = 'backup/registrations.db'
@@ -670,6 +893,7 @@ def backup_db():
 
 
 @app.route('/upload/', methods=['GET', 'POST'])
+@admin_required
 def upload_file():
     if request.method == 'POST':
         ic(request.files)
@@ -684,6 +908,7 @@ def upload_file():
 
 # Route to restore the database from backup
 @app.route("/restore_db")
+@admin_required
 def restore_db():
     backup_file = 'backup/registrations.db'
     source_file = 'instance/registrations.db'
@@ -934,6 +1159,10 @@ def confirm_prize(prize_id, reg_no):
 @app.route("/confirm_attendence", methods=["GET", "POST"])
 def confirm_attendence():
     form = RegistrationForm()  # Create an instance of the RegistrationForm
+    phone = request.args.get('phone')  # Get phone from query params
+    if phone:
+        form.phone_number.data = phone  # Pre-fill the phone number
+    
     if request.method == "POST":
         phone_number = request.form["phone_number"]
         sel_reg = Registration.query.filter_by(phone_number=phone_number).first()
@@ -953,6 +1182,14 @@ def confirm_attendence():
     return render_template(
         "confirm_attendence.html", form=form, result=""
     )  # Pass the form instance to the template
+
+@app.route("/confirm_attendance")
+def confirm_attendance():
+    phone = request.args.get('phone')
+    if phone:
+        # Pre-fill the phone number in the form
+        return render_template("confirm_attendance.html", phone=phone)
+    return redirect(url_for("index"))
 
 # ------------------------------------------------------------------------------
 # ''' Cards Routes '''
@@ -1023,6 +1260,59 @@ def download_card2():
         img_io, mimetype="image/png", as_attachment=True, download_name="card.png"
     )
 
+
+@app.route("/ticket/<phone_number>")
+def ticket(phone_number):
+    # Get registration data
+    registration = Registration.query.filter_by(phone_number=phone_number).first_or_404()
+    
+    # Get children if any
+    children = None
+    if registration.gender == "أنثى":
+        children = Children.query.filter_by(mother_phone=phone_number).all()
+    
+    return render_template("ticket.html", 
+                         registration=registration, 
+                         children=children,
+                         now=datetime.now())
+
+@app.route("/verify/<registration_number>")
+def verify_ticket(registration_number):
+    # Check main registration
+    registration = Registration.query.filter_by(registration_number=registration_number).first()
+    if registration:
+        return jsonify({
+            "valid": True,
+            "type": "main",
+            "name": f"{registration.first_name} {registration.father_name} {registration.family_name}",
+            "phone": registration.phone_number
+        })
+    
+    # Check children registration
+    child = Children.query.filter_by(registration_number=registration_number).first()
+    if child:
+        return jsonify({
+            "valid": True,
+            "type": "child",
+            "name": f"{child.first_name} {child.father_name} {child.family_name}",
+            "mother_phone": child.mother_phone
+        })
+    
+    return jsonify({"valid": False})
+
+@app.route("/short_ticket/<phone_number>")
+def short_ticket(phone_number):
+    # Get registration data
+    registration = Registration.query.filter_by(phone_number=phone_number).first_or_404()
+    
+    # Get children if any
+    children = None
+    if registration.gender == "أنثى":
+        children = Children.query.filter_by(mother_phone=phone_number).all()
+    
+    return render_template("short_ticket.html", 
+                         registration=registration, 
+                         children=children)
 
 # ==============================================================================
 if __name__ == "__main__":

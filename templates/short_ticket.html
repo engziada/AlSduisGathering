@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .short-ticket {
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 2px solid #000;
+        border-radius: 10px;
+        background-color: #fff;
+        direction: rtl;
+        text-align: center;
+    }
+
+    .ticket-header {
+        border-bottom: 2px solid #000;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+    }
+
+    .ticket-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+
+    .registration-info {
+        text-align: right;
+        margin: 15px 0;
+        font-size: 16px;
+    }
+
+    .info-row {
+        margin: 8px 0;
+    }
+
+    .label {
+        font-weight: bold;
+        margin-left: 10px;
+    }
+
+    .qr-code {
+        margin: 15px 0;
+    }
+
+    .qr-code img {
+        max-width: 100px;
+    }
+
+    .registration-number {
+        font-size: 16px;
+        font-weight: bold;
+        color: #000;
+        padding: 8px;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+
+    .action-buttons {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+    }
+
+    @media print {
+        .action-buttons {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="action-buttons">
+    <button onclick="saveAsImage()" class="btn btn-success">حفظ كصورة</button>
+    <a href="{{ url_for('registered', phone_number=registration.phone_number) }}" class="btn btn-secondary">رجوع</a>
+</div>
+
+<div class="short-ticket" id="ticket-content">
+    <div class="ticket-header">
+        <div class="ticket-title">تذكرة حضور الاجتماع السنوي لأسرة السديس</div>
+        <div>7-7-1445هـ الموافق 19-01-2024م</div>
+    </div>
+
+    <div class="registration-number">
+        رقم التسجيل: {{ registration.registration_number }}
+    </div>
+
+    <div class="registration-info">
+        <div class="info-row">
+            <span class="label">الاسم:</span>
+            <span>{{ registration.first_name }} {{ registration.father_name }} {{ registration.family_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">رقم الجوال:</span>
+            <span>{{ registration.phone_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">المدينة:</span>
+            <span>{{ registration.city }}</span>
+        </div>
+    </div>
+
+    {% if children %}
+    <div class="children-info">
+        <div style="font-weight: bold; margin: 10px 0;">الأطفال المصاحبين: {{ children|length }}</div>
+    </div>
+    {% endif %}
+
+    <div class="qr-code">
+        <img id="qr-code" alt="QR Code">
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+    // Generate QR code
+    window.onload = function() {
+        var qr = new QRious({
+            element: document.getElementById('qr-code'),
+            value: '{{ url_for("verify_ticket", registration_number=registration.registration_number, _external=True) }}',
+            size: 100
+        });
+    };
+
+    // Save as image function
+    function saveAsImage() {
+        const element = document.getElementById('ticket-content');
+        const buttons = document.querySelector('.action-buttons');
+        
+        // Hide buttons temporarily
+        buttons.style.display = 'none';
+        
+        html2canvas(element, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        }).then(canvas => {
+            // Show buttons again
+            buttons.style.display = 'block';
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = 'تذكرة_{{ registration.registration_number }}.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+</script>
+{% endblock %}

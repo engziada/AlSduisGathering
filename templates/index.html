@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% extends 'master.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
     <div class="header">
@@ -13,7 +13,13 @@
     </div>
 
 <div class="container text-center">
-    <form method="POST" action="/">
+    <form method="POST" action="/" style="
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 20px;
+">
         {{ form.hidden_tag() }}
         <div class="form-group">
             <div class="text-info">

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% extends 'master.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
     <div class="header">
@@ -10,74 +10,92 @@
         <hr>
     </div>
 
-<div class="container">
-    <form method="POST" action="/register/{{ phone_number }}">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.phone_number.label }}
-            {{ form.phone_number(class="form-control", disabled="disabled") }}
-        </div>
-        <div class="form-group">
-            {{ form.first_name.label(class="mandatory") }}
-            {{ form.first_name(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.family_name.label(class="mandatory") }}
-            {{ form.family_name(class="form-control", id="family_name", required="required") }}
-        </div>
-        <div class="non_family_box" id="custom_family_name_div">
+    <div class="container">
+        <form method="POST" action="{{ url_for('register', phone_number=phone_number) }}">
+            {{ form.hidden_tag() }}
             <div class="form-group">
-                {{ form.custom_family_name.label(class="mandatory") }}
-                {{ form.custom_family_name(class="form-control", id="custom_family_name") }}
+                {{ form.phone_number.label }}
+                {{ form.phone_number(class="form-control", disabled="disabled") }}
             </div>
             <div class="form-group">
-                {{ form.relation.label(class="mandatory") }}
-                {{ form.relation(class="form-control", id="relation") }}
-            </div>    
-        </div>
-        <div class="form-group">
-            {{ form.father_name.label(class="mandatory") }}
-            {{ form.father_name(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.first_grand_name.label(class="mandatory") }}
-            {{ form.first_grand_name(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.second_grand_name.label(class="mandatory") }}
-            {{ form.second_grand_name(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.third_grand_name.label (class="mandatory")}}
-            {{ form.third_grand_name(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.age.label (class="mandatory")}}
-            {{ form.age(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.gender.label(class="mandatory") }}
-            {{ form.gender(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.city.label(class="mandatory") }}
-            {{ form.city(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.attendance.label(class="mandatory") }}
-            {{ form.attendance(class="form-control", required="required") }}
-        </div>
-        <div class="form-group">
-            {{ form.ideas.label }}
-            {{ form.ideas(class="form-control") }}
-        </div>
-        <button type="submit" class="btn btn-primary">تسجيل</button>
-    </form>
-</div>
+                {{ form.first_name.label(class="mandatory") }}
+                {{ form.first_name(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.family_name.label(class="mandatory") }}
+                {{ form.family_name(class="form-control", id="family_name", required="required") }}
+            </div>
+            <div class="non_family_box" id="custom_family_name_div">
+                <div class="form-group">
+                    {{ form.custom_family_name.label(class="mandatory") }}
+                    {{ form.custom_family_name(class="form-control", id="custom_family_name") }}
+                </div>
+                <div class="form-group">
+                    {{ form.relation.label(class="mandatory") }}
+                    {{ form.relation(class="form-control", id="relation") }}
+                </div>    
+            </div>
+            <div class="form-group">
+                {{ form.father_name.label(class="mandatory") }}
+                {{ form.father_name(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.first_grand_name.label(class="mandatory") }}
+                {{ form.first_grand_name(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.second_grand_name.label(class="mandatory") }}
+                {{ form.second_grand_name(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.third_grand_name.label (class="mandatory")}}
+                {{ form.third_grand_name(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.age.label (class="mandatory")}}
+                {{ form.age(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.gender.label(class="mandatory") }}
+                {{ form.gender(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.city.label(class="mandatory") }}
+                {{ form.city(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.attendance.label(class="mandatory") }}
+                {{ form.attendance(class="form-control", required="required") }}
+            </div>
+            <div class="form-group">
+                {{ form.ideas.label }}
+                {{ form.ideas(class="form-control") }}
+            </div>
+            <!-- Children Section - Only visible for females -->
+            <div id="children-section" style="display: none;">
+                <hr>
+                <h4 class="text-center">بيانات الأطفال المصاحبين</h4>
+                <div id="children-forms"></div>
+                <button type="button" class="btn btn-secondary mt-3" id="add-child-btn">إضافة طفل</button>
+                {{ form.children_data(style="display: none;", id="children-data") }}
+            </div>
+            <hr>
+            <div class="text-center">
+                {% if registration %}
+                <button type="submit" class="btn btn-primary">تحديث البيانات</button>
+                {% else %}
+                <button type="submit" class="btn btn-primary">تسجيل</button>
+                {% endif %}
+                <a href="{{ url_for('registered', phone_number=phone_number) }}" class="btn btn-danger">إلغاء</a>
+            </div>
+        </form>
+    </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    let childrenDataInput; // Declare at global scope
+
     (function() {
         var familyNameField = document.getElementById('family_name');
         var customFamilyNameField = document.getElementById('custom_family_name');
@@ -91,9 +109,9 @@
 
         familyNameField.addEventListener('change', function() {
             if (familyNameField.value === 'أخرى') {
-            customFamilyNameDiv.style.display = 'block';
-            customFamilyNameField.setAttribute('required', 'required');
-            relationField.setAttribute('required', 'required');
+                customFamilyNameDiv.style.display = 'block';
+                customFamilyNameField.setAttribute('required', 'required');
+                relationField.setAttribute('required', 'required');
             } else {
                 customFamilyNameDiv.style.display = 'none';
                 customFamilyNameField.removeAttribute('required');
@@ -101,5 +119,217 @@
             }
         });
     })();
-    </script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const genderSelect = document.querySelector('select[name="gender"]');
+        const childrenSection = document.getElementById('children-section');
+        const childrenForms = document.getElementById('children-forms');
+        childrenDataInput = document.getElementById('children-data'); // Assign to global variable
+        const addChildBtn = document.getElementById('add-child-btn');
+        const registrationForm = document.querySelector('form');
+        let childIndex = 0;
+
+        // Function to add a child form with data
+        function addChildFormWithData(childData) {
+            const newChildForm = createChildForm(childIndex++);
+            childrenForms.insertAdjacentHTML('beforeend', newChildForm);
+            
+            // Get the newly added form
+            const form = childrenForms.lastElementChild;
+            
+            // Fill in the data
+            form.querySelector('.child-first-name').value = childData.first_name || '';
+            form.querySelector('.child-father-name').value = childData.father_name || '';
+            form.querySelector('.child-grandfather-name').value = childData.grandfather_name || '';
+            form.querySelector('.child-family-name').value = childData.family_name || '';
+            form.querySelector('.child-gender').value = childData.gender || '';
+            form.querySelector('.child-age').value = childData.age || '';
+            
+            // Add validation for the new form
+            setupChildFormValidation(form);
+            
+            // Add remove button functionality
+            const removeBtn = form.querySelector('.remove-child-btn');
+            removeBtn.addEventListener('click', function() {
+                form.remove();
+                updateChildrenData();
+            });
+            
+            // Update data when form changes
+            form.addEventListener('change', updateChildrenData);
+        }
+
+        // Initialize existing children data if any
+        try {
+            const existingData = childrenDataInput.value;
+            if (existingData) {
+                const childrenData = JSON.parse(existingData);
+                if (Array.isArray(childrenData)) {
+                    childrenData.forEach(childData => {
+                        addChildFormWithData(childData);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading existing children data:', error);
+        }
+
+        // Initialize children data
+        updateChildrenData();
+
+        // Show/hide children section based on gender
+        genderSelect.addEventListener('change', function() {
+            childrenSection.style.display = this.value === 'أنثى' ? 'block' : 'none';
+            if (this.value !== 'أنثى') {
+                childrenForms.innerHTML = '';
+                updateChildrenData();
+            }
+        });
+
+        // Add new child form when button is clicked
+        addChildBtn.addEventListener('click', function() {
+            // Get data from first child if exists
+            let inheritedData = {};
+            const firstChild = document.querySelector('.child-form');
+            if (firstChild) {
+                inheritedData = {
+                    father_name: firstChild.querySelector('.child-father-name').value,
+                    grandfather_name: firstChild.querySelector('.child-grandfather-name').value,
+                    family_name: firstChild.querySelector('.child-family-name').value
+                };
+            }
+            addChildFormWithData(inheritedData);
+            updateChildrenData();
+        });
+
+        // Show children section if gender is already female
+        if (genderSelect.value === 'أنثى') {
+            childrenSection.style.display = 'block';
+        }
+
+        // Handle form submission
+        registrationForm.addEventListener('submit', function(e) {
+            if (genderSelect.value === 'أنثى') {
+                // Update children data before submission
+                updateChildrenData();
+                
+                // Validate children data if there are child forms
+                const childForms = document.querySelectorAll('.child-form');
+                if (childForms.length > 0) {
+                    const isValid = Array.from(childForms).every(form => {
+                        const inputs = form.querySelectorAll('input, select');
+                        return Array.from(inputs).every(input => input.checkValidity());
+                    });
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        alert('الرجاء إكمال جميع بيانات الأطفال المطلوبة');
+                        return;
+                    }
+                }
+                
+                // Ensure children data is properly formatted
+                try {
+                    const data = JSON.parse(childrenDataInput.value);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Children data must be an array');
+                    }
+                    console.log('Valid Children Data:', data);
+                } catch (error) {
+                    console.error('Invalid children data:', error);
+                    e.preventDefault();
+                    alert('حدث خطأ في بيانات الأطفال. الرجاء المحاولة مرة أخرى.');
+                    return;
+                }
+            }
+        });
+    });
+
+    // Create child form template
+    function createChildForm(index) {
+        return `
+            <div class="child-form mb-4 border p-3 position-relative" data-index="${index}">
+                <button type="button" class="btn btn-danger btn-sm position-absolute remove-child-btn" style="top: 10px; right: 10px;">×</button>
+                <h5 class="text-center">الطفل ${index + 1}</h5>
+                <div class="form-group">
+                    <label>اسم الطفل</label>
+                    <input type="text" class="form-control child-first-name" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم الأب</label>
+                    <input type="text" class="form-control child-father-name" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم الجد</label>
+                    <input type="text" class="form-control child-grandfather-name" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم العائلة</label>
+                    <input type="text" class="form-control child-family-name" required>
+                </div>
+                <div class="form-group">
+                    <label>الجنس</label>
+                    <select class="form-control child-gender" required>
+                        <option value="">اختر</option>
+                        <option value="طفل">طفل</option>
+                        <option value="طفلة">طفلة</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>العمر</label>
+                    <input type="number" class="form-control child-age" required min="1" max="12">
+                </div>
+            </div>
+        `;
+    }
+
+    // Setup validation for a child form
+    function setupChildFormValidation(form) {
+        const genderSelect = form.querySelector('.child-gender');
+        const ageInput = form.querySelector('.child-age');
+
+        genderSelect.addEventListener('change', function() {
+            const maxAge = this.value === 'طفل' ? 9 : 12;
+            ageInput.max = maxAge;
+            ageInput.setAttribute('title', this.value === 'طفل' ? 
+                'العمر المسموح به للأطفال الذكور حتى ٩ سنوات' : 
+                'العمر المسموح به للإناث حتى ١٢ سنة');
+            if (parseInt(ageInput.value) > maxAge) {
+                ageInput.value = maxAge;
+                alert(this.value === 'طفل' ? 
+                    'عذراً، العمر المسموح به للأطفال الذكور حتى ٩ سنوات' : 
+                    'عذراً، العمر المسموح به للإناث حتى ١٢ سنة');
+            }
+        });
+
+        ageInput.addEventListener('input', function() {
+            const maxAge = genderSelect.value === 'طفل' ? 9 : 12;
+            if (parseInt(this.value) > maxAge) {
+                this.value = maxAge;
+                alert(genderSelect.value === 'طفل' ? 
+                    'عذراً، العمر المسموح به للأطفال الذكور حتى ٩ سنوات' : 
+                    'عذراً، العمر المسموح به للإناث حتى ١٢ سنة');
+            }
+        });
+    }
+
+    // Update hidden input with children data
+    function updateChildrenData() {
+        if (!childrenDataInput) return; // Guard clause if not initialized
+
+        const childForms = document.querySelectorAll('.child-form');
+        const childrenData = Array.from(childForms).map(form => ({
+            first_name: form.querySelector('.child-first-name').value,
+            father_name: form.querySelector('.child-father-name').value,
+            grandfather_name: form.querySelector('.child-grandfather-name').value,
+            family_name: form.querySelector('.child-family-name').value,
+            gender: form.querySelector('.child-gender').value,
+            age: form.querySelector('.child-age').value
+        }));
+
+        // Set empty array if no children, otherwise set the children data
+        childrenDataInput.value = JSON.stringify(childrenData || []);
+        console.log('Updated Children Data:', childrenDataInput.value); // Debug log
+    }
+</script>
 {% endblock %}

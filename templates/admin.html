@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-{% extends 'master.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
+    {% include 'admin_navbar.html' %}
+    
     <h1 class="col">صفحة مدير النظام</h1>
     <hr>
 
-    {% if not session.get('logged_in') %}
-
-        <div class="form-group">
-            <form action="/admin" method="post">
-                <label for="passcode">الرقم السري</label><br>
-                <input class="form-control" type="text" id="passcode" name="passcode" required="required" pattern="^[0-9]{4}$" , placeholder="ادخل الرقم السري المكون من 4 أرقام" title="الرقم السري مكون من 4 أرقام"><br>
-                <input type="submit" value="دخول" name="login_form" >
-            </form>
+    {% if not session.get('admin_logged_in') %}
+        <div class="alert alert-warning">
+            يجب تسجيل الدخول أولاً
         </div>
+        <script>
+            window.location.href = "{{ url_for('admin_login') }}";
+        </script>
     {% else %}
         
         <div class="border border-1 text-center px-5">
@@ -45,7 +45,9 @@
         </div>
 
             <div style="display: flex; justify-content: space-between; padding:15px; margin-block: 15px; border-color: #085E9D; border-width: 2px; border-radius: 5px; border-style: solid;">
-                <a href="{{ url_for('export_to_excel') }}" class="text-danger">تصدير كملف إكسل</a>
+                <a href="{{ url_for('export_to_excel') }}" class="text-danger">تصدير بيانات الضيوف</a>
+                <a style="color: 3085E9D;"> | </a>
+                <a href="{{ url_for('export_children_excel') }}" class="text-danger">تصدير بيانات الأطفال</a>
                 <a style="color: 3085E9D;"> | </a>
                 <a href="{{ url_for('backup_db') }}" class="text-danger">حفظ نسخة إحتياطية</a>
                 <a style="color: 3085E9D;"> | </a>
@@ -96,6 +98,7 @@
                                 <span class="material-symbols-outlined">delete</span>
                             </a>
                             
+
                         </td>
                     </tr>
 

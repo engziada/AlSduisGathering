@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container" style="display: flex;gap: 65px;">
+    <div class="action-buttons no-print" style="display: flex;flex-direction: column;gap: 20px;">
+        <button onclick="window.print()" class="btn btn-primary">طباعة التذكرة</button>
+        <button onclick="savePDF()" class="btn btn-success">حفظ كملف PDF</button>
+        <button onclick="saveAsImage()" class="btn btn-info">حفظ كصورة</button>
+        <a href="{{ url_for('registered', phone_number=registration.phone_number) }}" class="btn btn-secondary">رجوع</a>
+    </div>
+
+    <div class="ticket" id="ticket-content">
+        <div class="ticket-header">
+            <div class="logo" style="height: 60px;">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 100%; object-fit: contain;">
+            </div>
+            <div class="ticket-title">تذكرة حضور الاجتماع السنوي لأسرة السديس</div>
+            <div>7-7-1445هـ الموافق 19-01-2024م</div>
+        </div>
+
+        <div class="registration-number">
+            رقم التسجيل: {{ registration.registration_number }}
+        </div>
+
+        <div class="registration-info">
+            <div class="info-row">
+                <span class="label">الاسم:</span>
+                <span>{{ registration.first_name }} {{ registration.father_name }} {{ registration.family_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">رقم الجوال:</span>
+                <span>{{ registration.phone_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">المدينة:</span>
+                <span>{{ registration.city }}</span>
+            </div>
+        </div>
+
+        {% if children %}
+        <div class="children-info">
+            <div style="font-weight: bold; margin: 10px 0;">الأطفال المصاحبين: {{ children|length }}</div>
+        </div>
+        {% endif %}
+
+        <div class="qr-code" style="display: flex;flex-direction: row-reverse;">
+            <canvas id="qr-code" style="height: 200px; width: 200px; margin: 0;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+    // Generate QR code
+    window.onload = function() {
+        var qr = new QRious({
+            element: document.getElementById('qr-code'),
+            value: '{{ url_for("confirm_attendence", phone=registration.phone_number, _external=True) }}',
+            size: 200,
+            backgroundAlpha: 0,
+            padding: 0,
+            foreground: '#000000',
+            level: 'H' // Highest error correction level to allow for logo
+        });
+    };
+
+    // Save as PDF function
+    function savePDF() {
+        const element = document.getElementById('ticket-content');
+        const opt = {
+            margin: 10,
+            filename: 'تذكرة_حضور_{{ registration.registration_number }}.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Remove buttons before saving
+        const buttons = document.querySelector('.action-buttons');
+        buttons.style.display = 'none';
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            buttons.style.display = 'flex';
+        });
+    }
+
+    // Save as image function
+    function saveAsImage() {
+        const element = document.getElementById('ticket-content');
+        const buttons = document.querySelector('.action-buttons');
+        
+        // Hide buttons temporarily
+        buttons.style.display = 'none';
+        
+        // Store original padding
+        const originalPadding = element.style.padding;
+        // Add padding for the image
+        element.style.padding = '25px';
+        
+        html2canvas(element, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        }).then(canvas => {
+            // Show buttons again
+            buttons.style.display = 'flex';
+            // Restore original padding
+            element.style.padding = originalPadding;
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = 'تذكرة_{{ registration.registration_number }}.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+</script>
+{% endblock %}

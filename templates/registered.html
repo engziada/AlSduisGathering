@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% extends 'master.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
     <div class="header">
@@ -12,85 +12,71 @@
         <hr>
     </div>
 
-<div class="container text-center fs-3-rem" id="contentToConvert">
-    <p>مرحبا</p>
-    <h3 class="text-danger font-weight-bold">{{user_data.first_name}} {{user_data.father_name}} {{user_data.first_grand_name}} {{user_data.second_grand_name}} {{user_data.third_grand_name}} {{user_data.family_name}}</h3>
-    <p>تم تسجيل رقم الجوال</p>
-    <h3 class="text-danger font-weight-bold">{{user_data.phone_number}}</h3>
-    <p>رقم التسجيل الخاص بك</p>
-    <h3 class="text-danger font-weight-bold">{{user_data.registration_number}}</h3>
-    <p>الرجاء الحضور في موعد اللقاء السنوي لأسرة السديس</p>
-    <p>نتطلع لرؤيتك</p>
-</div>
-<hr>
-<div class="container text-center fs-3-rem row">
-    <div class="col">
-        <button type="button" class="btn btn-primary" onclick="window.location.href='/register/{{user_data.phone_number}}'">تعديل البيانات</button>
+    <div class="container text-center fs-3-rem" id="contentToConvert">
+        <p>مرحبا</p>
+        <h3 class="text-danger font-weight-bold">{{user_data.first_name}} {{user_data.father_name}} {{user_data.first_grand_name}} {{user_data.second_grand_name}} {{user_data.third_grand_name}} {{user_data.family_name}}</h3>
+        <p>تم تسجيل رقم الجوال</p>
+        <h3 class="text-danger font-weight-bold">{{user_data.phone_number}}</h3>
+        <p>رقم التسجيل الخاص بك</p>
+        <h3 class="text-danger font-weight-bold">{{user_data.registration_number}}</h3>
+        <p>الرجاء الحضور في موعد اللقاء السنوي لأسرة السديس</p>
+        <p>نتطلع لرؤيتك</p>
     </div>
-    <div class="col">
-        <button type="button" class="btn btn-secondary" id="convertButton">حفظ كصورة</button>
+    <hr>
+    <div class="container text-center fs-3-rem row">
+        <div class="col">
+            <form action="{{ url_for('register', phone_number=user_data.phone_number) }}" method="GET" style="display: inline;">
+                <button type="submit" class="btn btn-primary">تعديل البيانات</button>
+            </form>
+        </div>
+        <div class="col">
+            <a href="{{ url_for('ticket', phone_number=user_data.phone_number) }}" class="btn btn-success">عرض التذكرة</a>
+        </div>
+        <div class="col">
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">حذف البيانات</button>
+        </div>
     </div>
-    <div class="col">
-        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#confirmationModal">حذف البيانات</button>
-    </div>
-</div>
 
-<!-- Add an empty image element to display the captured image -->
-<!-- <canvas id="capturedCanvas" style="display: none;"></canvas> -->
+    <!-- Add an empty image element to display the captured image -->
+    <svg id="capturedSvg" style="display: none;" xmlns="http://www.w3.org/2000/svg"></svg>
 
-<!-- Create a hidden svg element to hold the captured content -->
-<svg id="capturedSvg" style="display: none;" xmlns="http://www.w3.org/2000/svg"></svg>
-
-<!-- Modal -->
-<div class="modal" id="confirmationModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title text-danger font-weight-bold">يؤسفنا رحيلكم ...</h3>
-            </div>
-            <div class="modal-body">
-                <h4>هل أنت متأكد من رغبتك في حذف البيانات؟</h4>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">حذف</button>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger fw-bold" id="deleteModalLabel">يؤسفنا رحيلكم ...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h4>هل أنت متأكد من رغبتك في حذف البيانات؟</h4>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">حذف</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Add a click event listener to the "حذف" (Delete) button in the modal
+    // Handle delete confirmation
     document.getElementById("confirmDelete").addEventListener("click", function () {
-        // Redirect to the delete route with the phone number
-        window.location.href = '/delete/{{ user_data.phone_number }}';
+        // Disable the button to prevent double clicks
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الحذف...';
+        
+        // Create a form and submit it as POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete/{{ user_data.phone_number }}';
+        document.body.appendChild(form);
+        form.submit();
     });
+
+    // Handle image conversion
+    // Removed the event listener for the 'convertButton' since it's no longer needed
 </script>
-
-<script>
-    document.getElementById('convertButton').addEventListener('click', function() {
-
-        const content = document.getElementById('contentToConvert').textContent;
-
-        fetch('/convert_to_image', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `content=${encodeURIComponent(content)}`,
-        })
-        .then(response => response.blob())
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'image.png';
-            a.click();
-        });
-    });
-</script>
-
 {% endblock %}

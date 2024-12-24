@@ -1,0 +1,39 @@
+{% if session.get('admin_logged_in') %}
+<nav class="navbar navbar-expand-lg mb-4" style="background-color: #085E9D;">
+    <div class="container">
+        <a class="navbar-brand text-white" href="{{ url_for('admin') }}">
+            <i class="fas fa-cog"></i> لوحة التحكم
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="adminNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'admin' %}active{% endif %}" href="{{ url_for('admin') }}">
+                        <i class="fas fa-home"></i> الرئيسية
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'list_prizes' %}active{% endif %}" href="{{ url_for('list_prizes') }}">
+                        <i class="fas fa-gift"></i> الهدايا
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'withdraw_prize' %}active{% endif %}" href="{{ url_for('withdraw_prize') }}">
+                        <i class="fas fa-random"></i> سحب الهدايا
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('admin_logout') }}" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
+                        <i class="fas fa-sign-out-alt"></i> تسجيل خروج
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+{% endif %}
