@@ -52,7 +52,17 @@ from functools import wraps
 
 # Initialize Flask
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///registrations.db"
+
+# Set database path based on environment
+if os.environ.get('RENDER'):
+    # Use Render's persistent storage
+    db_path = '/var/data/registrations.db'
+    os.makedirs('/var/data', exist_ok=True)
+else:
+    # Local development
+    db_path = 'registrations.db'
+
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["Close_Registrations"] = False
 app.secret_key = secrets.token_hex(16)  
@@ -885,11 +895,21 @@ def export_children_excel():
 @app.route("/backup_db")
 @admin_required
 def backup_db():
-    source_file = 'instance/registrations.db'
-    backup_file = 'backup/registrations.db'
-    shutil.copy2(source_file, backup_file)
-    flash("تم عمل نسخة إحتياطية من قاعدة البيانات بنجاح", "success")
-    return send_file(backup_file, as_attachment=True)
+    try:
+        # Set backup directory based on environment
+        if os.environ.get('RENDER'):
+            backup_dir = '/var/data/backup'
+        else:
+            backup_dir = 'backup'
+            
+        os.makedirs(backup_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = f"{backup_dir}/registrations_{timestamp}.db"
+        shutil.copy2(db_path, backup_file)
+        flash("تم أخذ نسخة احتياطية بنجاح", "success")
+    except Exception as e:
+        flash(f"حدث خطأ أثناء أخذ النسخة الاحتياطية: {str(e)}", "error")
+    return redirect(url_for("admin"))
 
 
 @app.route('/upload/', methods=['GET', 'POST'])
@@ -907,15 +927,46 @@ def upload_file():
 
 
 # Route to restore the database from backup
-@app.route("/restore_db")
+@app.route("/restore_db", methods=["POST"])
 @admin_required
 def restore_db():
-    backup_file = 'backup/registrations.db'
-    source_file = 'instance/registrations.db'
-    shutil.copy2(backup_file, source_file)
-    flash("تم إستعادة قاعدة البيانات بنجاح", "success")
-    return redirect(url_for("admin"))
-
+    try:
+        if 'backup_file' not in request.files:
+            flash('لم يتم اختيار ملف', 'error')
+            return redirect(url_for('admin'))
+            
+        file = request.files['backup_file']
+        if file.filename == '':
+            flash('لم يتم اختيار ملف', 'error')
+            return redirect(url_for('admin'))
+            
+        if file:
+            # Create a temporary backup of current database
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if os.environ.get('RENDER'):
+                temp_backup = f'/var/data/temp_backup_{timestamp}.db'
+            else:
+                temp_backup = f'backup/temp_backup_{timestamp}.db'
+                
+            shutil.copy2(db_path, temp_backup)
+            
+            try:
+                # Restore the uploaded backup
+                file.save(db_path)
+                flash('تم استعادة قاعدة البيانات بنجاح', 'success')
+            except Exception as e:
+                # If restore fails, recover from temporary backup
+                shutil.copy2(temp_backup, db_path)
+                flash(f'فشل في استعادة قاعدة البيانات: {str(e)}', 'error')
+            finally:
+                # Clean up temporary backup
+                if os.path.exists(temp_backup):
+                    os.remove(temp_backup)
+                    
+    except Exception as e:
+        flash(f'حدث خطأ: {str(e)}', 'error')
+        
+    return redirect(url_for('admin'))
 
 
 # ------------------------------------------------------------------------------
