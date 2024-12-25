@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: alsudis-gathering
+    env: python
+    buildCommand: ./build.sh
+    startCommand: ./deploy.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: RENDER
+        value: true
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
