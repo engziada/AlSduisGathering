@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% extends 'base.html' %}
 
+{% block title %}تم التسجيل بنجاح - أسرة السديس{% endblock %}
+
 {% block content %}
     <div class="header">
         <div class="text-center font-weight-bold">ببالغ السرور يسرنا دعوتكم للاجتماع السنوي لأسرة السديس</div>
@@ -20,6 +22,10 @@
         <h3 class="text-danger font-weight-bold">{{user_data.phone_number}}</h3>
         <p>رقم التسجيل الخاص بك</p>
         <h3 class="text-danger font-weight-bold">{{user_data.registration_number}}</h3>
+        {% if children_count > 0 %}
+            <p>عدد الأطفال المصاحبين: {{ children_count }}</p>
+            <p>أسماء الأطفال: {{ children_names|join('، ') }}</p>
+        {% endif %}
         <p>الرجاء الحضور في موعد اللقاء السنوي لأسرة السديس</p>
         <p>نتطلع لرؤيتك</p>
     </div>

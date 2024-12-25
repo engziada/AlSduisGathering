@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 {% extends 'base.html' %}
 
+{% block title %}تأكيد الحضور - أسرة السديس{% endblock %}
+
 {% block content %}
+{% include 'includes/logout_button.html' %}
 <div class="container text-center">
     <form method="POST">
         {{ form.hidden_tag() }}
@@ -22,6 +25,10 @@
             <div class="form-group">
                 <div>
                     <p class="text-success">تم تأكيد حضورك بنجاح</p>
+                    {% if children_count > 0 %}
+                        <p>عدد الأطفال المصاحبين: {{ children_count }}</p>
+                        <p>أسماء الأطفال: {{ children_names|join('، ') }}</p>
+                    {% endif %}
                     <p>تذكر أن رقم تسجيلك في السحب على الهدايا هو</p>
                     <h2>{{reg_no}}</h2>
                     <p>حظ سعيد</p>

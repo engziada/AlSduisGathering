@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 
+{% block title %}تسجيل دخول - أسرة السديس{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header text-center">
-                    <h3>تسجيل دخول المشرف</h3>
+                    <h3>تسجيل دخول</h3>
                 </div>
                 <div class="card-body">
                     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -17,14 +19,15 @@
                         {% endif %}
                     {% endwith %}
                     
-                    <form method="POST" action="{{ url_for('admin_login') }}">
+                    <form method="POST">
                         {{ form.csrf_token }}
                         <div class="form-group">
-                            <label for="passcode">كلمة المرور</label>
-                            <input type="password" class="form-control" id="passcode" name="passcode" required>
+                            {{ form.passcode.label(class="form-label") }}
+                            {{ form.passcode(class="form-control", placeholder="أدخل كود الدخول الخاص بك") }}
+                            <small class="form-text text-muted">أدخل كود الدخول الخاص بك للوصول إلى النظام</small>
                         </div>
                         <div class="text-center mt-3">
-                            <button type="submit" class="btn btn-primary">دخول</button>
+                            {{ form.submit(class="btn btn-primary") }}
                         </div>
                     </form>
                 </div>

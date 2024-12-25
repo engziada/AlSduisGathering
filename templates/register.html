@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 {% extends 'base.html' %}
 
+{% block title %}التسجيل - أسرة السديس{% endblock %}
+
 {% block content %}
     <div class="header">
         <div class="text-center font-weight-bold">ببالغ السرور يسرنا دعوتكم للاجتماع السنوي لأسرة السديس</div>
@@ -145,6 +147,7 @@
             form.querySelector('.child-family-name').value = childData.family_name || '';
             form.querySelector('.child-gender').value = childData.gender || '';
             form.querySelector('.child-age').value = childData.age || '';
+            form.querySelector('.child-emergency-phone').value = childData.emergency_phone || '';
             
             // Add validation for the new form
             setupChildFormValidation(form);
@@ -196,11 +199,43 @@
                 inheritedData = {
                     father_name: firstChild.querySelector('.child-father-name').value,
                     grandfather_name: firstChild.querySelector('.child-grandfather-name').value,
-                    family_name: firstChild.querySelector('.child-family-name').value
+                    family_name: firstChild.querySelector('.child-family-name').value,
+                    emergency_phone: firstChild.querySelector('.child-emergency-phone').value
                 };
+            } else {
+                // For first child, get mother's phone number
+                const motherPhone = document.querySelector('input[name="phone_number"]').value;
+                inheritedData.emergency_phone = motherPhone;
             }
-            addChildFormWithData(inheritedData);
-            updateChildrenData();
+            
+            const newChildForm = createChildForm(childIndex++);
+            childrenForms.insertAdjacentHTML('beforeend', newChildForm);
+            
+            // Get the newly added form
+            const form = childrenForms.lastElementChild;
+            
+            // Fill in inherited data
+            if (inheritedData.father_name) {
+                form.querySelector('.child-father-name').value = inheritedData.father_name;
+                form.querySelector('.child-grandfather-name').value = inheritedData.grandfather_name;
+                form.querySelector('.child-family-name').value = inheritedData.family_name;
+            }
+            if (inheritedData.emergency_phone) {
+                form.querySelector('.child-emergency-phone').value = inheritedData.emergency_phone;
+            }
+            
+            // Add validation for the new form
+            setupChildFormValidation(form);
+            
+            // Add remove button functionality
+            const removeBtn = form.querySelector('.remove-child-btn');
+            removeBtn.addEventListener('click', function() {
+                form.remove();
+                updateChildrenData();
+            });
+            
+            // Update data when form changes
+            form.addEventListener('change', updateChildrenData);
         });
 
         // Show children section if gender is already female
@@ -278,7 +313,11 @@
                 </div>
                 <div class="form-group">
                     <label>العمر</label>
-                    <input type="number" class="form-control child-age" required min="1" max="12">
+                    <input type="number" class="form-control child-age" required min="1" max="18">
+                </div>
+                <div class="form-group">
+                    <label>رقم هاتف للطوارئ</label>
+                    <input type="tel" class="form-control child-emergency-phone" required pattern="^0[0-9]{9,14}$" title="رقم الجوال يبدأ ب(صفر) و بحد أدنى 10 أرقام و بحد أقصى 15 رقم (أرقام فقط)">
                 </div>
             </div>
         `;
@@ -325,7 +364,8 @@
             grandfather_name: form.querySelector('.child-grandfather-name').value,
             family_name: form.querySelector('.child-family-name').value,
             gender: form.querySelector('.child-gender').value,
-            age: form.querySelector('.child-age').value
+            age: form.querySelector('.child-age').value,
+            emergency_phone: form.querySelector('.child-emergency-phone').value
         }));
 
         // Set empty array if no children, otherwise set the children data

@@ -80,6 +80,7 @@ GUESTS_SHEET_NAME = 'Sheet1'
 
 # Passcode whitelist
 PASSCODE_WHITELIST = ['9753', '6290']
+RECEPTIONIST_WHITELIST = ['1234']  # Add more receptionist codes as needed
 
 # ==============================================================================
 # ''' Models '''
@@ -150,6 +151,7 @@ class Children(db.Model):
     family_name = db.Column(db.Text, nullable=False)
     gender = db.Column(db.String(15), nullable=False)
     age = db.Column(db.Integer, nullable=False)
+    emergency_phone = db.Column(db.String(16), nullable=False)  # Adding emergency phone field
     registration_number = db.Column(db.String(4))  # Same as mother's
 
     def __repr__(self):
@@ -479,6 +481,11 @@ class CloseRegistrationForm(FlaskForm):
     close_registrations = app.config["Close_Registrations"]
     close_status=HiddenField("close_status", default=close_registrations)
 
+# Login form
+class LoginForm(FlaskForm):
+    passcode = StringField('كود الدخول', validators=[DataRequired()])
+    submit = SubmitField('دخول')
+
 # ------------------------------------------------------------------------------
 # ''' Registration Routes '''
 # ------------------------------------------------------------------------------
@@ -564,7 +571,8 @@ def register(phone_number):
                         'grandfather_name': child.grandfather_name,
                         'family_name': child.family_name,
                         'gender': child.gender,
-                        'age': child.age
+                        'age': child.age,
+                        'emergency_phone': child.emergency_phone
                     })
                 form.children_data.data = json.dumps(children_data)
 
@@ -621,6 +629,7 @@ def register(phone_number):
                             family_name=child_data['family_name'],
                             gender=child_data['gender'],
                             age=child_data['age'],
+                            emergency_phone=child_data['emergency_phone'],
                             registration_number=generate_registration_number()
                         )
                         db.session.add(child)
@@ -647,10 +656,18 @@ def register(phone_number):
 
 @app.route("/registered/<phone_number>", methods=["POST", "GET"])
 def registered(phone_number):
-    # Check if registration exists
-    if not is_registered(phone_number):
-        return redirect(url_for("index"))
-    return render_template("registered.html", user_data=get_user_data(phone_number))
+    user_data = get_user_data(phone_number)
+    if user_data:
+        # Get children information
+        children = Children.query.filter_by(mother_phone=phone_number).all()
+        children_names = [child.first_name for child in children]
+        return render_template(
+            "registered.html", 
+            user_data=user_data, 
+            children_names=children_names,
+            children_count=len(children)
+        )
+    return redirect(url_for("index"))
 
 @app.route("/delete/<phone_number>", methods=["POST"])
 def delete(phone_number):
@@ -673,42 +690,65 @@ def delete(phone_number):
         
     return redirect(url_for("index"))
 
-# Admin authentication decorator
+# Role-based authentication decorator
+def role_required(allowed_roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'role' not in session:
+                flash('يرجى تسجيل الدخول أولاً', 'error')
+                if request.endpoint != 'admin_login':  # Prevent redirect loop
+                    return redirect(url_for('admin_login'))
+                return f(*args, **kwargs)
+            if session['role'] not in allowed_roles:
+                flash('غير مصرح لك بالوصول لهذه الصفحة', 'error')
+                if session['role'] == 'receptionist':
+                    return redirect(url_for('confirm_attendence'))
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# Admin authentication decorator (for backward compatibility)
 def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('admin_logged_in'):
-            flash('يجب تسجيل الدخول أولاً', 'warning')
-            return redirect(url_for('admin_login'))
-        return f(*args, **kwargs)
-    return decorated_function
+    return role_required(['admin'])(f)
 
 # Admin login route
-@app.route("/admin/login", methods=["GET", "POST"])
+@app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
-    if session.get('admin_logged_in'):
-        return redirect(url_for('admin'))
-        
-    form = FlaskForm()
-    if request.method == "POST":
-        passcode = request.form.get('passcode')
+    # If already logged in, redirect to appropriate page
+    if 'role' in session:
+        if session['role'] == 'admin':
+            return redirect(url_for('admin'))
+        elif session['role'] == 'receptionist':
+            return redirect(url_for('confirm_attendence'))
+            
+    form = LoginForm()
+    if form.validate_on_submit():
+        passcode = form.passcode.data
         if passcode in PASSCODE_WHITELIST:
-            session['admin_logged_in'] = True
+            session['role'] = 'admin'
+            session.permanent = True  # Make session persistent
             flash('تم تسجيل الدخول بنجاح', 'success')
             return redirect(url_for('admin'))
-        flash('كلمة المرور غير صحيحة', 'error')
-    return render_template('admin_login.html', form=form)
+        elif passcode in RECEPTIONIST_WHITELIST:
+            session['role'] = 'receptionist'
+            session.permanent = True  # Make session persistent
+            flash('تم تسجيل الدخول بنجاح', 'success')
+            return redirect(url_for('confirm_attendence'))
+        else:
+            flash('كود الدخول غير صحيح', 'error')
+    return render_template("admin_login.html", form=form)
 
-# Admin logout route
-@app.route("/admin/logout")
+@app.route("/admin_logout")
 def admin_logout():
-    session.pop('admin_logged_in', None)
+    session.pop('role', None)
     flash('تم تسجيل الخروج بنجاح', 'success')
     return redirect(url_for('index'))
 
 @app.route("/admin/", methods=["GET"])
 @app.route("/admin", methods=["GET"])
-@admin_required
+@role_required(['admin'])
 def admin():
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -729,6 +769,11 @@ def admin():
     guest_male = guests_query.filter(Registration.gender == "ذكر").count()
     guest_female = guests_query.filter(Registration.gender == "أنثى").count()
     
+    # Get children statistics
+    children_count = Children.query.count()
+    children_male = Children.query.filter(Children.gender == "ذكر").count()
+    children_female = Children.query.filter(Children.gender == "أنثى").count()
+    
     # Create form for registration status
     close_registrations_form = CloseRegistrationForm()
     close_registrations = app.config["Close_Registrations"]
@@ -742,13 +787,16 @@ def admin():
         guest_is_attended=guest_is_attended,
         guest_male=guest_male,
         guest_female=guest_female,
+        children_count=children_count,
+        children_male=children_male,
+        children_female=children_female,
+        form=close_registrations_form,
         close_registrations=close_registrations,
-        form=close_registrations_form
     )
 
 @app.route("/admin/", methods=["POST"])
 @app.route("/admin", methods=["POST"])
-@admin_required
+@role_required(['admin'])
 def admin_post():
     close_registrations = app.config["Close_Registrations"]
     close_registrations_form = CloseRegistrationForm()
@@ -782,7 +830,7 @@ def delete_guest(guest_phoneno):
 
 
 @app.route("/export")
-@admin_required
+@role_required(['admin'])
 def export_to_excel():
     registrations = Registration.query.all()
     children = Children.query.all()
@@ -818,7 +866,8 @@ def export_to_excel():
             'اسم الجد': child.grandfather_name,
             'اسم العائلة': child.family_name,
             'الجنس': child.gender,
-            'العمر': child.age
+            'العمر': child.age,
+            'رقم الطوارئ': child.emergency_phone
         })
 
     # Create Excel writer object
@@ -839,7 +888,7 @@ def export_to_excel():
 
 
 @app.route("/export_children_excel")
-@admin_required
+@role_required(['admin'])
 def export_children_excel():
     # Query all children
     children = Children.query.all()
@@ -850,20 +899,26 @@ def export_children_excel():
     ws.title = "بيانات الأطفال"
     
     # Add headers
-    headers = ["رقم التسجيل", "رقم جوال الأم", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر"]
+    headers = ["رقم التسجيل", "رقم جوال الأم", "اسم الأم الكامل", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر", "رقم الطوارئ"]
     ws.append(headers)
     
     # Add data
     for child in children:
+        # Get mother's data
+        mother = Registration.query.filter_by(phone_number=child.mother_phone).first()
+        mother_full_name = f"{mother.first_name} {mother.father_name} {mother.first_grand_name} {mother.family_name}" if mother else "غير معروف"
+        
         ws.append([
             child.registration_number,
             child.mother_phone,
+            mother_full_name,
             child.first_name,
             child.father_name,
             child.grandfather_name,
             child.family_name,
             child.gender,
-            child.age
+            child.age,
+            child.emergency_phone
         ])
     
     # Set column width
@@ -894,7 +949,7 @@ def export_children_excel():
 
 # Route to take backup of the database
 @app.route("/backup_db")
-@admin_required
+@role_required(['admin'])
 def backup_db():
     try:
         # Set backup directory based on environment
@@ -914,7 +969,7 @@ def backup_db():
 
 
 @app.route('/upload/', methods=['GET', 'POST'])
-@admin_required
+@role_required(['admin'])
 def upload_file():
     if request.method == 'POST':
         ic(request.files)
@@ -929,7 +984,7 @@ def upload_file():
 
 # Route to restore the database from backup
 @app.route("/restore_db", methods=["POST"])
-@admin_required
+@role_required(['admin'])
 def restore_db():
     try:
         if 'backup_file' not in request.files:
@@ -974,31 +1029,33 @@ def restore_db():
 # ''' Prizes Routes '''
 # ------------------------------------------------------------------------------
 
-
 # Create route for displaying a list of prizes
 @app.route("/prizes", methods=["GET", "POST"])
 def list_prizes():
     prizes = Prize.query.all()
     filters = FilterForm()
-    if request.method == "POST" and filters.validate_on_submit():
-        # Get filter from user
+
+    if request.method == "POST":
         allowed_families = filters.family_name.data
         allowed_age_range = filters.age.data
         allowed_gender = filters.gender.data
         prize_id = request.form["prize_id"]
 
         # Set filter on the next prize
-        prize = Prize.query.get(prize_id)
-        prize.allowed_families = ",".join(allowed_families)
-        prize.allowed_age_range = ",".join(allowed_age_range)
-        prize.allowed_gender = ",".join(allowed_gender)
+        prize = db.session.get(Prize, prize_id)  # Updated to use session.get()
+        if prize:
+            prize.allowed_families = ",".join(allowed_families) if allowed_families else None
+            prize.allowed_age_range = ",".join(allowed_age_range) if allowed_age_range else None
+            prize.allowed_gender = ",".join(allowed_gender) if allowed_gender else None
 
-        # Set is_next to the selected prize only
-        Prize.query.update({"is_next": False})  # Remove the flag from all other prizes
-        prize.is_next = True
+            # Set is_next to the selected prize only
+            for p in prizes:
+                p.is_next = p.id == int(prize_id)
 
-        # Commit
-        db.session.commit()
+            db.session.commit()
+            flash("تم تحديد الهدية للسحب بنجاح!", "success")
+        else:
+            flash("الهدية غير موجودة!", "error")
 
     return render_template("prizes.html", prizes=prizes, filters=filters)
 
@@ -1066,7 +1123,7 @@ def delete_prize(id):
 # number in 'Registeration' table and delete 'prize_id'
 @app.route("/prizes/reset/<int:id>", methods=["POST"])
 def reset_prize(id):
-    sel_prize = Prize.query.get(id)
+    sel_prize = db.session.get(Prize, id)  # Updated to use session.get()
     sel_regno=sel_prize.guest_registration_number
     sel_prize.guest_registration_number = None
     sel_reg= Registration.query.filter_by(registration_number=sel_regno).first()
@@ -1079,14 +1136,20 @@ def reset_prize(id):
 # ''' Withdrawal Routes '''
 # ------------------------------------------------------------------------------
 
-
 # Route to withdraw a prize
 @app.route("/withdraw_prize", methods=["GET", "POST"])
 def withdraw_prize():
     sel_prize = Prize.query.filter_by(
         is_next=True, guest_registration_number=None
     ).first()
-
+    
+    print("\n=== Withdrawal Debug Info ===")
+    print(f"Selected Prize: {sel_prize.name if sel_prize else 'None'}")
+    if sel_prize:
+        print(f"Prize ID: {sel_prize.id}")
+        print(f"Is Next: {sel_prize.is_next}")
+        print(f"Guest Registration Number: {sel_prize.guest_registration_number}")
+    
     # Fetch all registration numbers not associated with a prize
     return render_template("withdraw_prize.html", prize=sel_prize)
 
@@ -1097,6 +1160,12 @@ def get_filtered_reg_no(prize_id: int):
     allowed_families = sel_prize.allowed_families
     allowed_age_range = sel_prize.allowed_age_range
     allowed_gender = sel_prize.allowed_gender
+
+    print("\n=== Withdrawal Filter Debug Info ===")
+    print(f"Prize ID: {prize_id}")
+    print(f"Allowed Families: {allowed_families}")
+    print(f"Allowed Age Range: {allowed_age_range}")
+    print(f"Allowed Gender: {allowed_gender}")
 
     # Base query to filter records without a prize_id
     base_query = Registration.query.filter(
@@ -1115,7 +1184,7 @@ def get_filtered_reg_no(prize_id: int):
         filter_conditions.append(family_condition)
 
     # Check if allowed_age_range is not 'الكل'
-    if allowed_age_range:
+    if allowed_age_range and allowed_age_range != "الكل":
         age_ranges = allowed_age_range.split(",")
         age_range_condition = or_(
             *[Registration.age.contains(age_range) for age_range in age_ranges]
@@ -1123,7 +1192,7 @@ def get_filtered_reg_no(prize_id: int):
         filter_conditions.append(age_range_condition)
 
     # Check if allowed_gender is not 'الكل'
-    if allowed_gender:
+    if allowed_gender and allowed_gender != "الكل":
         genders = allowed_gender.split(",")
         gender_condition = or_(
             *[Registration.gender.contains(gender) for gender in genders]
@@ -1136,20 +1205,35 @@ def get_filtered_reg_no(prize_id: int):
     else:
         final_query = base_query
     
-    # ic(str(final_query))
-    # for condition in filter_conditions:
-    #     ic(condition.compile().params)
-
+    print("\n=== Query Debug Info ===")
+    print(f"SQL Query: {str(final_query)}")
+    
     # Execute the query to get the filtered records
     registrations_without_prize = final_query.all()
-    # ic(registrations_without_prize)
+    
+    print("\n=== Filtered Guests ===")
+    print(f"Total Filtered Guests: {len(registrations_without_prize)}")
+    for reg in registrations_without_prize:
+        print(f"Guest: {reg.first_name} {reg.father_name} {reg.family_name}")
+        print(f"Registration Number: {reg.registration_number}")
+        print(f"Age: {reg.age}")
+        print(f"Gender: {reg.gender}")
+        print(f"Is Attended: {reg.is_attended}")
+        print("---")
+    
     return registrations_without_prize
 
 
 # Route to get random registration number
 @app.route("/shuffle_numbers/<int:id>", methods=["GET", "POST"])
 def shuffle_numbers(id):
+    print("\n=== Starting Shuffle Numbers ===")
+    print(f"Prize ID: {id}")
+    
     registrations_without_prize = get_filtered_reg_no(prize_id=id)
+    print(f"\n=== After Filtering ===")
+    print(f"Number of eligible registrations: {len(registrations_without_prize)}")
+    
     ic(registrations_without_prize)
     # registrations_without_prize = Registration.query.filter_by(prize_id=None).all()
     random.shuffle(registrations_without_prize)
@@ -1159,15 +1243,11 @@ def shuffle_numbers(id):
     if registrations_without_prize:
         # Randomly select one registration number
         selected_registration = random.choice(registrations_without_prize)
-        # rnd_reg_no = selected_registration.registration_number
-        # Reomve the select winner and move it to 2nd place
-        # registrations_without_prize.remove(selected_registration)
-        # registrations_without_prize.insert(1, selected_registration)
-
-        # regno_list = [
-        #     reg.registration_number.zfill(4) for reg in registrations_without_prize[:10]
-        # ]
-
+        print(f"\n=== Selected Winner ===")
+        print(f"Name: {selected_registration.first_name} {selected_registration.father_name} {selected_registration.family_name}")
+        print(f"Registration Number: {selected_registration.registration_number}")
+        print(f"Is Attended: {selected_registration.is_attended}")
+        
         ic(selected_registration)
         return jsonify(
             winner=selected_registration.registration_number,
@@ -1184,13 +1264,14 @@ def shuffle_numbers(id):
                     + selected_registration.family_name,
         )
     else:
+        print("\n=== No Eligible Registrations Found ===")
         return jsonify(winner="", winner_name="")
 
 
 @app.route("/confirm_prize/<int:prize_id>/<int:reg_no>", methods=["GET", "POST"])
 def confirm_prize(prize_id, reg_no):
     # Get the sel prize object and update it
-    sel_prize = Prize.query.filter_by(id=prize_id).first()
+    sel_prize = db.session.get(Prize, prize_id)  # Updated to use session.get()
     sel_prize.guest_registration_number = reg_no
     sel_prize.is_next = False
     # Update the registeration table
@@ -1206,9 +1287,9 @@ def confirm_prize(prize_id, reg_no):
 # ''' Attendence confirmation Routes '''
 # ------------------------------------------------------------------------------
 
-
 # Route for attendence confirmation
 @app.route("/confirm_attendence", methods=["GET", "POST"])
+@role_required(['admin', 'receptionist'])
 def confirm_attendence():
     form = RegistrationForm()  # Create an instance of the RegistrationForm
     phone = request.args.get('phone')  # Get phone from query params
@@ -1221,11 +1302,17 @@ def confirm_attendence():
         if sel_reg:
             sel_reg.is_attended = True
             db.session.commit()
+            
+            # Get children information
+            children = Children.query.filter_by(mother_phone=phone_number).all()
+            children_names = [child.first_name for child in children]
             return render_template(
                 "confirm_attendence.html",
                 form=form,
                 result="success",
                 reg_no=sel_reg.registration_number,
+                children_count=len(children),
+                children_names=children_names
             )
         else:
             return render_template(
@@ -1246,7 +1333,6 @@ def confirm_attendance():
 # ------------------------------------------------------------------------------
 # ''' Cards Routes '''
 # ------------------------------------------------------------------------------
-
 
 @app.route("/cards")
 def cards():
@@ -1315,18 +1401,19 @@ def download_card2():
 
 @app.route("/ticket/<phone_number>")
 def ticket(phone_number):
-    # Get registration data
-    registration = Registration.query.filter_by(phone_number=phone_number).first_or_404()
-    
-    # Get children if any
-    children = None
-    if registration.gender == "أنثى":
+    registration = Registration.query.filter_by(phone_number=phone_number).first()
+    if registration:
+        # Get children information
         children = Children.query.filter_by(mother_phone=phone_number).all()
-    
-    return render_template("ticket.html", 
-                         registration=registration, 
-                         children=children,
-                         now=datetime.now())
+        children_names = [child.first_name for child in children]
+        return render_template(
+            "ticket.html", 
+            registration=registration, 
+            children=children,
+            children_names=children_names,
+            children_count=len(children)
+        )
+    return redirect(url_for("index"))
 
 @app.route("/verify/<registration_number>")
 def verify_ticket(registration_number):

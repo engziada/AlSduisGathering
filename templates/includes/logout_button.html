@@ -1,0 +1,7 @@
+{% if 'role' in session %}
+<div class="position-fixed top-0 end-0 m-3">
+    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger btn-sm">
+        <i class="fas fa-sign-out-alt"></i> تسجيل خروج
+    </a>
+</div>
+{% endif %}

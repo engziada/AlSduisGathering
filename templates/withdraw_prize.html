@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% extends "base.html" %}
 
+{% block title %}السحب على الجوائز - أسرة السديس{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.7/themes/odometer-theme-default.css" integrity="sha512-kMPqFnKueEwgQFzXLEEl671aHhQqrZLS5IP3HzqdfozaST/EgU+/wkM07JCmXFAt9GO810I//8DBonsJUzGQsQ==" crossorigin="anonymous" referrerpolicy="no-referrer" /><!-- Add confetti elements to the HTML with a hidden class initially -->
@@ -92,76 +93,86 @@
       return;
     }
 
+    console.log('Starting withdrawal for prize ID:', prizeId);
+
     // Fetch the updated list from the server
-    $.ajax({
-      url: `/shuffle_numbers/${prizeId}`,
-      type: 'GET',
-      dataType: 'json',
-      success: function (data) {
-        //var regno_list = data.regno_list;
+    fetch(`/shuffle_numbers/${prizeId}`)
+      .then(response => response.json())
+      .then(data => {
+        console.log('Received data:', data);
+        
+        if (!data.winner) {
+          console.error('No winner returned');
+          winner_name_box.innerHTML = 'لا يوجد مشاركين مؤهلين';
+          return;
+        }
+
         winnerno = data.winner;
         winnername = data.winner_name;
+
+        console.log('Winner number:', winnerno);
+        console.log('Winner name:', winnername);
 
         createOdometer(odometerEl, winnerno);
 
         setTimeout(function () {
           confirm_button.style.display = 'block';
-          $('#winner_name_box').text(winnername);
-        }, 2500); // Added 3 second delay
-
-      },
-      error: function (error) {
+          winner_name_box.textContent = winnername;
+        }, 2500);
+      })
+      .catch(error => {
         console.error('Error fetching updated list:', error);
-      }
-    });
+        winner_name_box.innerHTML = 'حدث خطأ في عملية السحب';
+      });
   });
 
   document.getElementById('confirmButton').addEventListener('click', async function () {
     var prizebox = document.getElementById('prize_box');
-    $.ajax({
-      url: `/confirm_prize/${prizeId}/${winnerno}`, // Include 'prize id' and 'reg id' in the URL
-      type: 'POST', // Use POST or GET based on your server setup
-      dataType: 'json',
-      success: function (response) {
-        prizebox.innerHTML = `
-    <h3>تم تأكيد الفائز بنجاح</h3>
-    <h2 class='text-danger'>مبروك</h2>
-    <h1>${winnername}</h1>
-    <h2>هديتك</h2>
-    <h1>{{prize.name}}</h1>`;
-
-        async function animateConfetti() {
-          for (let i = 0; i < 5; i++) {
-            confetti({
-              particleCount: 200,
-              startVelocity: 50,
-              spread: 360,
-              origin: {
-                x: Math.random(),
-                // since they fall down, start a bit higher than random
-                y: Math.random() - 0.2
-              }
-            });
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-
-        animateConfetti();
-        confirm_button.style.display = 'none';
-        prizeId=null;
-        winnerno = null;
-        winnername = null;
-        start_button.innerText ="تحديث";
-
-        //refresh page in 5 seconds
-        startCountdown(regno_box,10);
-
-
-      },
-      error: function (error) {
-        console.error('Error confirming prize:', error);
+    
+    fetch(`/confirm_prize/${prizeId}/${winnerno}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
       }
+    })
+    .then(response => response.json())
+    .then(response => {
+      prizebox.innerHTML = `
+        <h3>تم تأكيد الفائز بنجاح</h3>
+        <h2 class='text-danger'>مبروك</h2>
+        <h1>${winnername}</h1>
+        <h2>هديتك</h2>
+        <h1>{{prize.name}}</h1>`;
+
+      async function animateConfetti() {
+        for (let i = 0; i < 5; i++) {
+          confetti({
+            particleCount: 200,
+            startVelocity: 50,
+            spread: 360,
+            origin: {
+              x: Math.random(),
+              y: Math.random() - 0.2
+            }
+          });
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      animateConfetti();
+      confirm_button.style.display = 'none';
+      prizeId = null;
+      winnerno = null;
+      winnername = null;
+      start_button.innerText = "تحديث";
+
+      //refresh page in 5 seconds
+      startCountdown(regno_box, 10);
+    })
+    .catch(error => {
+      console.error('Error confirming prize:', error);
+      prizebox.innerHTML = '<h3>حدث خطأ في تأكيد الفائز</h3>';
     });
   });
 </script>

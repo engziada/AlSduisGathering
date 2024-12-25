@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}تذكرة الحضور - أسرة السديس{% endblock %}
+
 {% block extra_head %}
 
 {% endblock %}
@@ -43,9 +45,10 @@
             </div>
         </div>
 
-        {% if children %}
+        {% if children_count > 0 %}
         <div class="children-info">
-            <div style="font-weight: bold; margin: 10px 0;">الأطفال المصاحبين: {{ children|length }}</div>
+            <div style="font-weight: bold; margin: 10px 0;">الأطفال المصاحبين: {{ children_count }}</div>
+            <div style="margin: 5px 0;">أسماء الأطفال: {{ children_names|join('، ') }}</div>
         </div>
         {% endif %}
 
