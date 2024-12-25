@@ -7,14 +7,7 @@ set -e
 pip install -r requirements.txt
 
 # Initialize database and run migrations
-python -c "
-from app import app, db
-from flask_migrate import upgrade
+python update_db.py
 
-with app.app_context():
-    # Create all tables
-    db.create_all()
-    
-    # Run all migrations
-    upgrade()
-"
+# Make deploy script executable
+chmod +x deploy.sh

@@ -2,7 +2,7 @@ services:
   - type: web
     name: alsudis-gathering
     env: python
-    buildCommand: ./build.sh
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: ./deploy.sh
     envVars:
       - key: PYTHON_VERSION
