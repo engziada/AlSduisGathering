@@ -329,27 +329,27 @@ def create_image(content):
     return image
 
 # Function to check if a value exists in a specific sheet
-def is_value_in_sheet(spreadsheet_url, sheet_name, target_value):
-    # Make a request to fetch the sheet data
-    response = requests.get(spreadsheet_url)
-    if response.status_code == 200:
-        # Parse the HTML response
-        soup = BeautifulSoup(response.content, 'html.parser')
-        # Find the table corresponding to the sheet
-        tables = soup.find('table')
-        # Check if the table exists
-        if tables:
-            # Check if the target value exists in any cell
-            for row in tables.find_all('tr'):
-                if target_value in [cell.text.strip() for cell in row.find_all('td')]:
-                    return True
-            return False
-        else:
-            print(f"Sheet '{sheet_name}' not found.")
-            return False
-    else:
-        print(f"Error fetching data from Spreadsheet. Status code: {response.status_code}")
-        return False
+# def is_value_in_sheet(spreadsheet_url, sheet_name, target_value):
+#     # Make a request to fetch the sheet data
+#     response = requests.get(spreadsheet_url)
+#     if response.status_code == 200:
+#         # Parse the HTML response
+#         soup = BeautifulSoup(response.content, 'html.parser')
+#         # Find the table corresponding to the sheet
+#         tables = soup.find('table')
+#         # Check if the table exists
+#         if tables:
+#             # Check if the target value exists in any cell
+#             for row in tables.find_all('tr'):
+#                 if target_value in [cell.text.strip() for cell in row.find_all('td')]:
+#                     return True
+#             return False
+#         else:
+#             print(f"Sheet '{sheet_name}' not found.")
+#             return False
+#     else:
+#         print(f"Error fetching data from Spreadsheet. Status code: {response.status_code}")
+#         return False
 
 # ==============================================================================
 # ''' Forms '''
@@ -492,17 +492,18 @@ def index():
     if request.method == "POST":
         phone_number = request.form["phone_number"]
         # Check if the number is in the spreadsheet
-        if not is_value_in_sheet(
-            spreadsheet_url=SPREADSHEET_URL,
-            sheet_name=GUESTS_SHEET_NAME,
-            target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
-        ):
-            if close_registrations:
-                return render_template("closed.html")
-            else:
-                # If the number is not in the spreadsheet, redirect to the error page
-                return render_template("not_in_sheet.html")
+        # if not is_value_in_sheet(
+        #     spreadsheet_url=SPREADSHEET_URL,
+        #     sheet_name=GUESTS_SHEET_NAME,
+        #     target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
+        # ):
+    #         # If the number is not in the spreadsheet, redirect to the error page
+    #         return render_template("not_in_sheet.html")
         
+        # Check if the registration is closed
+        if close_registrations:
+            return render_template("closed.html")
+
         # Check if the phone number is not registered
         if not is_registered(phone_number):
             if close_registrations:
@@ -520,13 +521,13 @@ def register(phone_number):
     if app.config["Close_Registrations"]:
         return redirect(url_for("index"))
     
-    # Verify phone number is in spreadsheet
-    if not is_value_in_sheet(
-        spreadsheet_url=SPREADSHEET_URL,
-        sheet_name=GUESTS_SHEET_NAME,
-        target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
-    ):
-        return redirect(url_for("index"))
+    # # Verify phone number is in spreadsheet (Commented for direct registration)
+    # if not is_value_in_sheet(
+    #     spreadsheet_url=SPREADSHEET_URL,
+    #     sheet_name=GUESTS_SHEET_NAME,
+    #     target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
+    # ):
+    #     return redirect(url_for("index"))
 
     # Get existing registration data
     registration = Registration.query.filter_by(phone_number=phone_number).first()

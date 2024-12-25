@@ -19,28 +19,32 @@
     {% block links %}{% endblock %}
 </head>
 <body>
-    <div class="header">
-        <img src="/static/Header.jpg" alt="Header Image">
-        <div class="welcome-message">حفل اللقاء السنوي لأسرة السديس</div>
-    </div>
+    <div class="page-wrapper d-flex flex-column h-100">
+        <div class="content-wrapper flex-grow-1">
+            <div class="header">
+                <img src="/static/Header.jpg" alt="Header Image">
+                <div class="welcome-message">حفل اللقاء السنوي لأسرة السديس</div>
+            </div>
 
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+            <div class="container mt-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
 
-        {% block content %}{% endblock %}
-    </div>
+                {% block content %}{% endblock %}
+            </div>
+        </div>
 
-    <div class="footer" style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
-        <p>© 2024 أسرة السديس. جميع الحقوق محفوظة.</p>
+        <div class="footer mt-auto">
+            <p>جميع الحقوق محفوظة لـ <a href="https://thez.solutions/home" target="_blank"><img src="{{ url_for('static', filename='z_logo.svg') }}" alt="Z Solutions" style="height: 20px; vertical-align: middle;"></a> <i class="far fa-copyright" style="color: #585856; font-size: 0.6em; vertical-align: super;"></i></p>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->

@@ -17,6 +17,11 @@
     font-family: 'Cairo-Regular', sans-serif;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
 body {
     font-family: 'Cairo-Regular', sans-serif;
     background-color: whitesmoke;
@@ -24,6 +29,51 @@ body {
     font-family: Arial, sans-serif;
     margin-left: auto;
     margin-right: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
+    flex: 1 0 auto;
+    padding-bottom: 2rem;
+}
+
+.container {
+    margin-bottom: 1rem;
+}
+
+.footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 5px 0;
+    margin: 0 20px 10px 20px;
+    /* background-color: #085E9D; */
+    color: #085E9D;
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: #085E9D;
+    border-style: solid;
+}
+
+.footer p {
+    margin: 0;
+    line-height: 24px;
+}
+
+.footer a {
+    color: white;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: white;
+    text-decoration: none;
 }
 
 /* For large screens */
