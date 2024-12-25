@@ -104,8 +104,20 @@
 
 ## طريقة التشغيل
 1. تثبيت المتطلبات: `pip install -r requirements.txt`
-2. تشغيل السيرفر: `python app.py`
-3. فتح المتصفح على: `http://localhost:5000`
+2. تحديث قاعدة البيانات: `python update_db.py`
+3. تشغيل السيرفر: `python app.py`
+4. فتح المتصفح على: `http://localhost:5000`
+
+## طريقة النشر على Render.com
+1. إنشاء حساب على Render.com
+2. اختيار "New Web Service"
+3. ربط المشروع من GitHub
+4. تعيين Build Command: 
+```bash
+pip install -r requirements.txt && python update_db.py
+```
+5. تعيين Start Command: `python app.py`
+6. اختيار Free Plan والضغط على Create Web Service
 
 ## ملاحظات هامة
 - يجب التأكد من وجود مجلد `backup` لعمل النسخ الاحتياطي
