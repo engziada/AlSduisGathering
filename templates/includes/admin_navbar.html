@@ -1,4 +1,4 @@
-{% if session.get('admin_logged_in') %}
+{% if session.get('role') == 'admin' %}
 <nav class="navbar navbar-expand-lg mb-4" style="background-color: #085E9D;">
     <div class="container">
         <a class="navbar-brand text-white" href="{{ url_for('admin') }}">
