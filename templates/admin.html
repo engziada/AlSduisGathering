@@ -78,51 +78,53 @@
         </form>
     </div>
 
-    <table class="table table-striped table-responsive">
-        <thead>
-            <tr></tr>
-                <th class="border border-1">مسلسل</th>
-                <th colspan="7">الإسم بالكامل</th>
-            <tr>
-                <th>رقم الجوال</th>
-                <th>رقم التسجيل</th>
-                <th>صلة القرابة</th>
-                <th>السن</th>
-                <th>الجنس</th>
-                <th>المدينة</th>
-                <th>تأكيد الحضور</th>
-                <!-- <th>مقترحات</th> -->
-                <th>تم حضوره</th>
-                <th></th>              
-            </tr>
-        </thead>
-        <tbody>
-            {% for guest in guests.items %}
-            <tr>
-                <td class="border border-1">{{ loop.index }}</td>
-                <td colspan="7">{{ guest.first_name }} {{ guest.father_name }} {{ guest.first_grand_name }} {{ guest.second_grand_name }} {{ guest.third_grand_name }} {{ guest.family_name }}</td>
-                <td class="border border-1 text-center" rowspan="2">
-                    <a class="text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف
-                        <span class="material-symbols-outlined">delete</span>
-                    </a>
-                    
+    <div class="table-responsive mt-4">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th class="border border-1">مسلسل</th>
+                    <th colspan="7">الإسم بالكامل</th>
+                <tr>
+                    <th>رقم الجوال</th>
+                    <th>رقم التسجيل</th>
+                    <th>صلة القرابة</th>
+                    <th>السن</th>
+                    <th>الجنس</th>
+                    <th>المدينة</th>
+                    <th>تأكيد الحضور</th>
+                    <!-- <th>مقترحات</th> -->
+                    <th>تم حضوره</th>
+                    <th></th>              
+                </tr>
+            </thead>
+            <tbody>
+                {% for guest in guests.items %}
+                <tr>
+                    <td class="border border-1">{{ loop.index }}</td>
+                    <td colspan="7">{{ guest.first_name }} {{ guest.father_name }} {{ guest.first_grand_name }} {{ guest.second_grand_name }} {{ guest.third_grand_name }} {{ guest.family_name }}</td>
+                    <td class="border border-1 text-center" rowspan="2">
+                        <a class="text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف
+                            <span class="material-symbols-outlined">delete</span>
+                        </a>
+                        
 
-                </td>
-            </tr>
+                    </td>
+                </tr>
 
-            <tr>
-                <td>{{ guest.phone_number }}</td>
-                <td>{{ guest.registration_number }}</td>
-                <td>{{ guest.relation }}</td>
-                <td>{{ guest.age|replace('سنة', '') }}</td>
-                <td>{{ guest.gender }}</td>
-                <td>{{ guest.city }}</td>
-                <td>{% if guest.attendance=='سوف أحضر باذن الله' %}نعم{% else %}أعتذر{%endif%}</td>
-                <td>{% if guest.is_attended %}حضر{% else %}لم يحضر{%endif%}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                <tr>
+                    <td>{{ guest.phone_number }}</td>
+                    <td>{{ guest.registration_number }}</td>
+                    <td>{{ guest.relation }}</td>
+                    <td>{{ guest.age|replace('سنة', '') }}</td>
+                    <td>{{ guest.gender }}</td>
+                    <td>{{ guest.city }}</td>
+                    <td>{% if guest.attendance=='سوف أحضر باذن الله' %}نعم{% else %}أعتذر{%endif%}</td>
+                    <td>{% if guest.is_attended %}حضر{% else %}لم يحضر{%endif%}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <!-- Pagination controls -->
     <div class="pagination">

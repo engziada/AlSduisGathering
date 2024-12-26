@@ -87,6 +87,15 @@
 - تحسين تنظيم الكود وإضافة التعليقات
 - تحسين نظام الجلسات وإضافة الجلسات الدائمة
 
+### Checkpoint 4 (2024-12-27)
+- Fixed registration form to properly handle children registration for male guests
+- Updated database schema to use gender-neutral terms (parent_phone instead of mother_phone)
+- Added guest's full name display in attendance confirmation
+- Improved mobile responsiveness:
+  - Fixed logout button positioning on small screens
+  - Made admin table horizontally scrollable while keeping page fixed
+  - Optimized statistics display for mobile view
+
 ## متطلبات النظام
 - Python 3.8+
 - Flask

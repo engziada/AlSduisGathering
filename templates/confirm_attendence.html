@@ -24,7 +24,8 @@
         {%elif result=="success"%}
             <div class="form-group">
                 <div>
-                    <p class="text-success">تم تأكيد حضورك بنجاح</p>
+                    <p class="text-success">تم تأكيد الحضور بنجاح</p>
+                    <p>{{ full_name }}</p>
                     {% if children_count > 0 %}
                         <p>عدد الأطفال المصاحبين: {{ children_count }}</p>
                         <p>أسماء الأطفال: {{ children_names|join('، ') }}</p>

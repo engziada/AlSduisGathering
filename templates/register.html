@@ -74,8 +74,7 @@
                 {{ form.ideas.label }}
                 {{ form.ideas(class="form-control") }}
             </div>
-            <!-- Children Section - Only visible for females -->
-            <div id="children-section" style="display: none;">
+            <div id="children-section">
                 <hr>
                 <h4 class="text-center">بيانات الأطفال المصاحبين</h4>
                 <div id="children-forms"></div>
@@ -110,6 +109,19 @@
             customFamilyNameDiv.style.display = 'block';
         }
 
+        // Function to update first child's family name
+        function updateFirstChildFamilyName() {
+            if (document.querySelector('select[name="gender"]').value === 'ذكر') {
+                const firstChild = document.querySelector('.child-form');
+                if (firstChild) {
+                    const familyName = familyNameField.value === "أخرى" 
+                        ? customFamilyNameField.value 
+                        : familyNameField.value;
+                    firstChild.querySelector('.child-family-name').value = familyName;
+                }
+            }
+        }
+
         familyNameField.addEventListener('change', function() {
             if (familyNameField.value === 'أخرى') {
                 customFamilyNameDiv.style.display = 'block';
@@ -119,8 +131,12 @@
                 customFamilyNameDiv.style.display = 'none';
                 customFamilyNameField.removeAttribute('required');
                 relationField.removeAttribute('required');
+                updateFirstChildFamilyName();
             }
         });
+
+        // Update first child's family name when custom family name changes
+        customFamilyNameField.addEventListener('input', updateFirstChildFamilyName);
     })();
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -183,24 +199,41 @@
 
         // Show/hide children section based on gender
         genderSelect.addEventListener('change', function() {
-            childrenSection.style.display = this.value === 'أنثى' ? 'block' : 'none';
-            if (this.value !== 'أنثى') {
-                childrenForms.innerHTML = '';
-                updateChildrenData();
+            if (this.value === 'ذكر') {
+                // Get parent's data for inheritance
+                const fatherName = document.querySelector('input[name="first_name"]').value;
+                const grandfatherName = document.querySelector('input[name="father_name"]').value;
+                const familyNameSelect = document.querySelector('select[name="family_name"]');
+                const familyName = familyNameSelect.value === "أخرى" 
+                    ? document.querySelector('input[name="custom_family_name"]').value 
+                    : familyNameSelect.value;
+                const phoneNumber = document.querySelector('input[name="phone_number"]').value;
+
+                // If there's a first child, update their inherited fields
+                const firstChild = document.querySelector('.child-form');
+                if (firstChild) {
+                    firstChild.querySelector('.child-father-name').value = fatherName;
+                    firstChild.querySelector('.child-grandfather-name').value = grandfatherName;
+                    firstChild.querySelector('.child-family-name').value = familyName;
+                    firstChild.querySelector('.child-emergency-phone').value = phoneNumber;
+                }
             }
+            updateChildrenData();
         });
 
         // Add new child form when button is clicked
         addChildBtn.addEventListener('click', function() {
-            // Get data from first child if exists
+            // Get data for inheritance if parent is male and this is the first child
             let inheritedData = {};
-            const firstChild = document.querySelector('.child-form');
-            if (firstChild) {
+            if (genderSelect.value === 'ذكر' && !document.querySelector('.child-form')) {
+                const familyNameSelect = document.querySelector('select[name="family_name"]');
                 inheritedData = {
-                    father_name: firstChild.querySelector('.child-father-name').value,
-                    grandfather_name: firstChild.querySelector('.child-grandfather-name').value,
-                    family_name: firstChild.querySelector('.child-family-name').value,
-                    emergency_phone: firstChild.querySelector('.child-emergency-phone').value
+                    father_name: document.querySelector('input[name="first_name"]').value,
+                    grandfather_name: document.querySelector('input[name="father_name"]').value,
+                    family_name: familyNameSelect.value === "أخرى" 
+                        ? document.querySelector('input[name="custom_family_name"]').value 
+                        : familyNameSelect.value,
+                    emergency_phone: document.querySelector('input[name="phone_number"]').value
                 };
             } else {
                 // For first child, get mother's phone number
@@ -211,11 +244,10 @@
             const newChildForm = createChildForm(childIndex++);
             childrenForms.insertAdjacentHTML('beforeend', newChildForm);
             
-            // Get the newly added form
             const form = childrenForms.lastElementChild;
             
             // Fill in inherited data
-            if (inheritedData.father_name) {
+            if (Object.keys(inheritedData).length > 0) {
                 form.querySelector('.child-father-name').value = inheritedData.father_name;
                 form.querySelector('.child-grandfather-name').value = inheritedData.grandfather_name;
                 form.querySelector('.child-family-name').value = inheritedData.family_name;
@@ -236,6 +268,7 @@
             
             // Update data when form changes
             form.addEventListener('change', updateChildrenData);
+            updateChildrenData();
         });
 
         // Show children section if gender is already female

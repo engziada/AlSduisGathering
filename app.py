@@ -144,7 +144,7 @@ class Prize(db.Model):
 class Children(db.Model):
     __tablename__ = "children"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    mother_phone = db.Column(db.String(16), db.ForeignKey('registration.phone_number'), nullable=False)
+    parent_phone = db.Column(db.String(16), db.ForeignKey('registration.phone_number'), nullable=False)
     first_name = db.Column(db.Text, nullable=False)
     father_name = db.Column(db.Text, nullable=False)
     grandfather_name = db.Column(db.Text, nullable=False)
@@ -152,7 +152,7 @@ class Children(db.Model):
     gender = db.Column(db.String(15), nullable=False)
     age = db.Column(db.Integer, nullable=False)
     emergency_phone = db.Column(db.String(16), nullable=False)  # Adding emergency phone field
-    registration_number = db.Column(db.String(4))  # Same as mother's
+    registration_number = db.Column(db.String(4))  # Same as parent's
 
     def __repr__(self):
         return f'<Child {self.first_name} {self.father_name}>'
@@ -581,7 +581,7 @@ def register(phone_number):
             # If updating existing registration
             if registration:
                 registration.first_name = form.first_name.data
-                registration.family_name = form.family_name.data
+                registration.family_name = form.custom_family_name.data if form.family_name.data == "أخرى" else form.family_name.data
                 registration.father_name = form.father_name.data
                 registration.first_grand_name = form.first_grand_name.data
                 registration.second_grand_name = form.second_grand_name.data
@@ -594,13 +594,13 @@ def register(phone_number):
                 registration.ideas = form.ideas.data
 
                 # Delete existing children
-                Children.query.filter_by(mother_phone=phone_number).delete()
+                Children.query.filter_by(parent_phone=phone_number).delete()
             else:
                 # Create new registration
                 registration = Registration(
                     phone_number=form.phone_number.data,
                     first_name=form.first_name.data,
-                    family_name=form.family_name.data,
+                    family_name=form.custom_family_name.data if form.family_name.data == "أخرى" else form.family_name.data,
                     father_name=form.father_name.data,
                     first_grand_name=form.first_grand_name.data,
                     second_grand_name=form.second_grand_name.data,
@@ -616,27 +616,26 @@ def register(phone_number):
                 db.session.add(registration)
                 db.session.flush()
 
-            # Handle children registration if the participant is female
-            if form.gender.data == "أنثى":
-                try:
-                    children_data = json.loads(request.form.get('children_data', '[]'))
-                    for child_data in children_data:
-                        child = Children(
-                            mother_phone=phone_number,
-                            first_name=child_data['first_name'],
-                            father_name=child_data['father_name'],
-                            grandfather_name=child_data['grandfather_name'],
-                            family_name=child_data['family_name'],
-                            gender=child_data['gender'],
-                            age=child_data['age'],
-                            emergency_phone=child_data['emergency_phone'],
-                            registration_number=generate_registration_number()
-                        )
-                        db.session.add(child)
-                except json.JSONDecodeError as e:
-                    app.logger.error(f"Error parsing children data: {str(e)}")
-                    flash("حدث خطأ في معالجة بيانات الأطفال", "error")
-                    return render_template("register.html", form=form)
+            # Handle children registration for all guests
+            try:
+                children_data = json.loads(request.form.get('children_data', '[]'))
+                for child_data in children_data:
+                    child = Children(
+                        parent_phone=phone_number,
+                        first_name=child_data['first_name'],
+                        father_name=child_data['father_name'],
+                        grandfather_name=child_data['grandfather_name'],
+                        family_name=child_data['family_name'],
+                        gender=child_data['gender'],
+                        age=child_data['age'],
+                        emergency_phone=child_data['emergency_phone'],
+                        registration_number=generate_registration_number()
+                    )
+                    db.session.add(child)
+            except json.JSONDecodeError as e:
+                app.logger.error(f"Error parsing children data: {str(e)}")
+                flash("حدث خطأ في معالجة بيانات الأطفال", "error")
+                return render_template("register.html", form=form)
 
             db.session.commit()
             if registration:
@@ -659,7 +658,7 @@ def registered(phone_number):
     user_data = get_user_data(phone_number)
     if user_data:
         # Get children information
-        children = Children.query.filter_by(mother_phone=phone_number).all()
+        children = Children.query.filter_by(parent_phone=phone_number).all()
         children_names = [child.first_name for child in children]
         return render_template(
             "registered.html", 
@@ -679,7 +678,7 @@ def delete(phone_number):
     
     try:
         # Delete associated children first
-        Children.query.filter_by(mother_phone=phone_number).delete()
+        Children.query.filter_by(parent_phone=phone_number).delete()
         # Delete registration
         db.session.delete(registration)
         db.session.commit()
@@ -859,8 +858,8 @@ def export_to_excel():
     children_data = []
     for child in children:
         children_data.append({
-            'رقم تسجيل الوالدة': child.registration_number,
-            'رقم جوال الوالدة': child.mother_phone,
+            'رقم التسجيل': child.registration_number,
+            'رقم جوال ولي الأمر': child.parent_phone,
             'اسم الطفل': child.first_name,
             'اسم الأب': child.father_name,
             'اسم الجد': child.grandfather_name,
@@ -899,19 +898,19 @@ def export_children_excel():
     ws.title = "بيانات الأطفال"
     
     # Add headers
-    headers = ["رقم التسجيل", "رقم جوال الأم", "اسم الأم الكامل", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر", "رقم الطوارئ"]
+    headers = ["رقم التسجيل", "رقم جوال ولي الأمر", "اسم ولي الأمر", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر", "رقم الطوارئ"]
     ws.append(headers)
     
     # Add data
     for child in children:
-        # Get mother's data
-        mother = Registration.query.filter_by(phone_number=child.mother_phone).first()
-        mother_full_name = f"{mother.first_name} {mother.father_name} {mother.first_grand_name} {mother.family_name}" if mother else "غير معروف"
+        # Get parent's data
+        parent = Registration.query.filter_by(phone_number=child.parent_phone).first()
+        parent_full_name = f"{parent.first_name} {parent.father_name} {parent.first_grand_name} {parent.family_name}" if parent else "غير معروف"
         
         ws.append([
             child.registration_number,
-            child.mother_phone,
-            mother_full_name,
+            child.parent_phone,
+            parent_full_name,
             child.first_name,
             child.father_name,
             child.grandfather_name,
@@ -1176,11 +1175,14 @@ def get_filtered_reg_no(prize_id: int):
     filter_conditions = []
 
     # Check if allowed_families is not empty
-    if allowed_families and "أخرى" not in allowed_families:
-        families = allowed_families.split(",")
-        family_condition = or_(
-            *[Registration.family_name.contains(family) for family in families]
-        )
+    if allowed_families:
+        families = [f.strip() for f in allowed_families.split(",")]
+        if "أخرى" in families:
+            # If "أخرى" is selected, include all non-"السديس" families
+            family_condition = Registration.family_name != "السديس"
+        else:
+            # Otherwise, only include exact matches for the specified families
+            family_condition = Registration.family_name.in_(families)
         filter_conditions.append(family_condition)
 
     # Check if allowed_age_range is not 'الكل'
@@ -1304,15 +1306,20 @@ def confirm_attendence():
             db.session.commit()
             
             # Get children information
-            children = Children.query.filter_by(mother_phone=phone_number).all()
+            children = Children.query.filter_by(parent_phone=phone_number).all()
             children_names = [child.first_name for child in children]
+
+            # Construct full name
+            full_name = f"{sel_reg.first_name} {sel_reg.father_name} {sel_reg.first_grand_name} {sel_reg.family_name}"
+            
             return render_template(
                 "confirm_attendence.html",
                 form=form,
                 result="success",
                 reg_no=sel_reg.registration_number,
                 children_count=len(children),
-                children_names=children_names
+                children_names=children_names,
+                full_name=full_name
             )
         else:
             return render_template(
@@ -1404,7 +1411,7 @@ def ticket(phone_number):
     registration = Registration.query.filter_by(phone_number=phone_number).first()
     if registration:
         # Get children information
-        children = Children.query.filter_by(mother_phone=phone_number).all()
+        children = Children.query.filter_by(parent_phone=phone_number).all()
         children_names = [child.first_name for child in children]
         return render_template(
             "ticket.html", 
@@ -1434,7 +1441,7 @@ def verify_ticket(registration_number):
             "valid": True,
             "type": "child",
             "name": f"{child.first_name} {child.father_name} {child.family_name}",
-            "mother_phone": child.mother_phone
+            "parent_phone": child.parent_phone
         })
     
     return jsonify({"valid": False})
@@ -1447,7 +1454,7 @@ def short_ticket(phone_number):
     # Get children if any
     children = None
     if registration.gender == "أنثى":
-        children = Children.query.filter_by(mother_phone=phone_number).all()
+        children = Children.query.filter_by(parent_phone=phone_number).all()
     
     return render_template("short_ticket.html", 
                          registration=registration, 

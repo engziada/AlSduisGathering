@@ -103,6 +103,10 @@ body {
 }
 
 .header {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+    z-index: 1;
     /* background-color: #585856; */
     padding-top: 10px;
     padding-bottom: 10px;
@@ -155,6 +159,62 @@ body {
     border-top: 10px solid #085E9D;
     border-bottom: 10px solid #585856;
     border-radius: 10px;
+}
+
+.position-fixed.top-0.end-0 {
+    z-index: 1000;
+    position: absolute !important;
+    margin-top: 10px !important;
+}
+
+@media (max-width: 768px) {
+    .position-fixed.top-0.end-0 {
+        position: relative !important;
+        margin: 10px auto !important;
+        text-align: center;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .header {
+        margin-bottom: 50px;
+    }
+}
+
+/* Admin page table styles */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+}
+
+.table-responsive table {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Prevent page horizontal scroll */
+    .container {
+        max-width: 100%;
+        padding-right: 10px;
+        padding-left: 10px;
+        overflow-x: hidden;
+    }
+    
+    /* Make statistics responsive */
+    .border.border-1.text-center {
+        padding: 10px !important;
+    }
 }
 
 /* ------------------------------------------------------------------ */
