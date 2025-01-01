@@ -525,129 +525,95 @@ def index():
 # Route for the registration form
 @app.route("/register/<phone_number>", methods=["GET", "POST"])
 def register(phone_number):
-    if app.config["Close_Registrations"]:
-        return redirect(url_for("index"))
-    
-    # # Verify phone number is in spreadsheet (Commented for direct registration)
-    # if not is_value_in_sheet(
-    #     spreadsheet_url=SPREADSHEET_URL,
-    #     sheet_name=GUESTS_SHEET_NAME,
-    #     target_value=phone_number if phone_number[0]!='0' else phone_number[1:],
-    # ):
-    #     return redirect(url_for("index"))
-
-    # Get existing registration data
-    registration = Registration.query.filter_by(phone_number=phone_number).first()
+    # Set the phone number in the form
     form = RegistrationForm()
-
-    # Always set the phone number in the form
     form.phone_number.data = phone_number
-
-    if registration:
+    
+    # Get existing registration if any
+    registration = Registration.query.filter_by(phone_number=phone_number).first()
+    
+    if request.method == "GET" and registration:
         # Pre-fill form with existing data
-        if not form.is_submitted():
-            # No need to set phone_number again as it's already set above
-            form.first_name.data = registration.first_name
-            form.family_name.data = registration.family_name
-            form.father_name.data = registration.father_name
-            form.first_grand_name.data = registration.first_grand_name
-            form.second_grand_name.data = registration.second_grand_name
-            form.third_grand_name.data = registration.third_grand_name
-            form.relation.data = registration.relation
-            form.age.data = registration.age
-            form.gender.data = registration.gender
-            form.city.data = registration.city
-            form.attendance.data = registration.attendance
-            form.ideas.data = registration.ideas
-
-            # Get children data if any
-            if registration.gender == "أنثى":
-                children = Children.query.filter_by(mother_phone=phone_number).all()
-                children_data = []
-                for child in children:
-                    children_data.append({
-                        'first_name': child.first_name,
-                        'father_name': child.father_name,
-                        'grandfather_name': child.grandfather_name,
-                        'family_name': child.family_name,
-                        'gender': child.gender,
-                        'age': child.age,
-                        'emergency_phone': child.emergency_phone
-                    })
-                form.children_data.data = json.dumps(children_data)
-
+        form.first_name.data = registration.first_name
+        form.family_name.data = registration.family_name
+        form.father_name.data = registration.father_name
+        form.first_grand_name.data = registration.first_grand_name
+        form.second_grand_name.data = registration.second_grand_name
+        form.third_grand_name.data = registration.third_grand_name
+        form.relation.data = registration.relation
+        form.age.data = registration.age
+        form.gender.data = registration.gender
+        form.city.data = registration.city
+        form.attendance.data = registration.attendance
+        form.ideas.data = registration.ideas
+        
+        # Get children data if any
+        children = Children.query.filter_by(parent_phone=phone_number).all()
+        if children:
+            children_data = []
+            for child in children:
+                child_data = {
+                    "first_name": child.first_name,
+                    "father_name": child.father_name,
+                    "grandfather_name": child.grandfather_name,
+                    "family_name": child.family_name,
+                    "gender": child.gender,
+                    "age": child.age,
+                    "emergency_phone": child.emergency_phone
+                }
+                children_data.append(child_data)
+            form.children_data.data = json.dumps(children_data)
+    
     if form.validate_on_submit():
         try:
-            # If updating existing registration
-            if registration:
-                registration.first_name = form.first_name.data
-                registration.family_name = form.custom_family_name.data if form.family_name.data == "أخرى" else form.family_name.data
-                registration.father_name = form.father_name.data
-                registration.first_grand_name = form.first_grand_name.data
-                registration.second_grand_name = form.second_grand_name.data
-                registration.third_grand_name = form.third_grand_name.data
-                registration.relation = form.relation.data if form.family_name.data == "أخرى" else None
-                registration.age = form.age.data
-                registration.gender = form.gender.data
-                registration.city = form.city.data
-                registration.attendance = form.attendance.data
-                registration.ideas = form.ideas.data
+            if not registration:
+                registration = Registration()
+                registration.registration_number = generate_registration_number()
+            
+            # Always use the phone number from the URL
+            registration.phone_number = phone_number
+            registration.first_name = form.first_name.data
+            registration.family_name = form.family_name.data
+            registration.father_name = form.father_name.data
+            registration.first_grand_name = form.first_grand_name.data
+            registration.second_grand_name = form.second_grand_name.data
+            registration.third_grand_name = form.third_grand_name.data
+            registration.relation = form.relation.data
+            registration.age = form.age.data
+            registration.gender = form.gender.data
+            registration.city = form.city.data
+            registration.attendance = form.attendance.data
+            registration.ideas = form.ideas.data
 
-                # Delete existing children
-                Children.query.filter_by(parent_phone=phone_number).delete()
-            else:
-                # Create new registration
-                registration = Registration(
-                    phone_number=form.phone_number.data,
-                    first_name=form.first_name.data,
-                    family_name=form.custom_family_name.data if form.family_name.data == "أخرى" else form.family_name.data,
-                    father_name=form.father_name.data,
-                    first_grand_name=form.first_grand_name.data,
-                    second_grand_name=form.second_grand_name.data,
-                    third_grand_name=form.third_grand_name.data,
-                    relation=form.relation.data if form.family_name.data == "أخرى" else None,
-                    age=form.age.data,
-                    gender=form.gender.data,
-                    city=form.city.data,
-                    attendance=form.attendance.data,
-                    ideas=form.ideas.data,
-                    registration_number=generate_registration_number(),
-                )
+            if not registration.id:
                 db.session.add(registration)
-                db.session.flush()
-
-            # Handle children registration for all guests
-            try:
-                children_data = json.loads(request.form.get('children_data', '[]'))
+            
+            # Handle children data
+            if form.children_data.data:
+                # Delete existing children first if updating
+                if registration.id:
+                    Children.query.filter_by(parent_phone=phone_number).delete()
+                
+                children_data = json.loads(form.children_data.data)
                 for child_data in children_data:
                     child = Children(
-                        parent_phone=phone_number,
+                        parent_phone=phone_number,  # Always use the phone number from the URL
                         first_name=child_data['first_name'],
                         father_name=child_data['father_name'],
                         grandfather_name=child_data['grandfather_name'],
                         family_name=child_data['family_name'],
                         gender=child_data['gender'],
-                        age=child_data['age'],
+                        age=int(child_data['age']),
                         emergency_phone=child_data['emergency_phone'],
-                        registration_number=generate_registration_number()
+                        registration_number=registration.registration_number
                     )
                     db.session.add(child)
-            except json.JSONDecodeError as e:
-                app.logger.error(f"Error parsing children data: {str(e)}")
-                flash("حدث خطأ في معالجة بيانات الأطفال", "error")
-                return render_template("register.html", form=form)
 
             db.session.commit()
-            if registration:
-                flash("تم تحديث البيانات بنجاح", "success")
-            else:
-                flash("تم التسجيل بنجاح", "success")
             return redirect(url_for("registered", phone_number=phone_number))
-        
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Error during registration: {str(e)}")
-            flash("حدث خطأ أثناء التسجيل", "error")
+            flash(f"حدث خطأ أثناء التسجيل: {str(e)}", "error")
             return render_template("register.html", form=form, registration=registration, phone_number=phone_number)
 
     return render_template("register.html", form=form, registration=registration, phone_number=phone_number)

@@ -96,6 +96,20 @@
   - Made admin table horizontally scrollable while keeping page fixed
   - Optimized statistics display for mobile view
 
+### Checkpoint 5 (2025-01-01)
+- Fixed phone number handling in registration form
+- Fixed children data inheritance for both male and female parents
+- Made phone number readonly instead of disabled to ensure proper form submission
+- For male parents: first child inherits father's name, grandfather's name, and family name from parent
+- For female parents: first child only inherits emergency phone, subsequent children inherit names from first child
+- Restricted male parents to only add male children
+- Added proper validation and error handling for registration process
+
+To revert to this checkpoint:
+```bash
+git checkout $(git rev-list -n 1 --before="2025-01-01 23:25:07" main)
+```
+
 ## متطلبات النظام
 - Python 3.8+
 - Flask
