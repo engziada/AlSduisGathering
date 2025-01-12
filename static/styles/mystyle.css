@@ -299,3 +299,8 @@ body {
   /* .hidden-confetti {
     display: none;
   } */
+
+.ticket-title {
+    font-family: 'Cairo-Bold', sans-serif;
+    font-size: large;
+}

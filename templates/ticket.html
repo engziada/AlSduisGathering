@@ -20,10 +20,13 @@
             <div class="logo" style="height: 60px;">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 100%; object-fit: contain;">
             </div>
-            <div class="ticket-title">تذكرة حضور الاجتماع السنوي لأسرة السديس</div>
+            <br>
+            <div class="ticket-title">تذكرة حضور الحفل السنوي لأسرة السديس</div>
+            <br>
             <div class="text-center font-weight-bold">يوم الجمعة 24-7-1446هـ الموافق 24-01-2025م</div>
-            <div class="text-center font-weight-bold">يبدأ البرامج في القسم الرجالي بعد صلاة الجمعة مباشرة الساعة 1 ظهراً</div>
-            <div class="text-center font-weight-bold">يبدأ البرامج في القسم النسائي الساعة 8 مساءاً</div>
+            <div class="text-center font-weight-bold">يبدأ البرنامج في قسم الرجال بعد صلاة الجمعة مباشرة</div>
+            <div class="text-center font-weight-bold">يبدأ البرنامج في قسم النساء الساعة 8 ليلًا</div>
+            <br>
             </div>
 
         <div class="registration-number">
@@ -54,7 +57,16 @@
 
         <div class="qr-code" style="display: flex;flex-direction: row-reverse;">
             <canvas id="qr-code" style="height: 200px; width: 200px; margin: 0;"></canvas>
+            {% if registration.gender == 'أنثى' %}
+            <div style="margin-left: 10px; color: #d5006d; font-weight: bold;">يبدأ برنامج النساء بعد صلاة العشاء مباشرة 
+                ودخول النساء من بوابة قسم النساء وستكون بوابة قسم الرجال الفترة الليلية مفتوحة لإدخال الأطفال المصاحبين ثم تتجه ولية أمرهم إلى بوابة النساء للدخول لقاعة النساء.</div>
+            {% endif %}
         </div>
+        {% if registration.gender == 'أنثى' %}
+        <div style="margin-left: 10px; color: #d5006d; font-weight: bold;">الدعوة خاصة لبنات الأسرة وبناتهم وزوجات أبنائنا 
+            فقط وسيتم التأكد من ذلك عند دخول القاعة.</div>
+        {% endif %}
+
     </div>
 </div>
 
