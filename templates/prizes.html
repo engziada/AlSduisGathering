@@ -54,10 +54,11 @@
             </form>
 
             {%if prize.guest_registration_number==None and not prize.is_next%}
-              <input type="hidden" name="prize_id" value="{{ prize.id }}">
-              <button type="submit" class="btn btn-success btn-sm" style="width: 8em">إبدأ السحب</button>
+              <button type="submit" class="btn btn-success btn-sm" style="width: 8em" name="prize_id" value="{{ prize.id }}">إبدأ السحب</button>
+              <input type="hidden" name="action" value="start_draw">
             {%elif prize.guest_registration_number==None and prize.is_next%}
-              <button type="submit" class="btn btn-primary btn-sm" style="width: 8em" onclick="window.location.reload">جاري السحب</button>
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 8em" name="prize_id" value="{{ prize.id }}">جاري السحب</button>
+              <input type="hidden" name="action" value="end_draw">
             {%else%}
               <form action="{{ url_for('reset_prize', id=prize.id) }}" method="post" style="display: inline-block;">
                 <button type="submit" class="btn btn-warning btn-sm" style="width: 8em" onclick="return confirm('هل أنت متأكد من إعادة التهيئة؟')">إعادة التهيئة</button>

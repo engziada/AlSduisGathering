@@ -1004,21 +1004,32 @@ def list_prizes():
         allowed_families = filters.family_name.data
         allowed_age_range = filters.age.data
         allowed_gender = filters.gender.data
-        prize_id = request.form["prize_id"]
-
+        prize_id = request.form.get("prize_id")
+        action = request.form.get("action")  
+        print("prize_id:",prize_id,"action:",action)
+        
         # Set filter on the next prize
         prize = db.session.get(Prize, prize_id)  # Updated to use session.get()
         if prize:
-            prize.allowed_families = ",".join(allowed_families) if allowed_families else None
-            prize.allowed_age_range = ",".join(allowed_age_range) if allowed_age_range else None
-            prize.allowed_gender = ",".join(allowed_gender) if allowed_gender else None
+            if action == "start_draw":
+                prize.allowed_families = ",".join(allowed_families) if allowed_families else None
+                prize.allowed_age_range = ",".join(allowed_age_range) if allowed_age_range else None
+                prize.allowed_gender = ",".join(allowed_gender) if allowed_gender else None
 
-            # Set is_next to the selected prize only
-            for p in prizes:
-                p.is_next = p.id == int(prize_id)
+                # Set is_next to the selected prize only
+                for p in prizes:
+                    p.is_next = p.id == int(prize_id)
 
-            db.session.commit()
-            flash("تم تحديد الهدية للسحب بنجاح!", "success")
+                db.session.commit()
+                flash("تم تحديد الهدية للسحب بنجاح!", "success")
+
+            elif action == "end_draw":
+                prize.is_next = False
+                db.session.commit()
+                flash("تم انهاء السحب للهدية الحالية", "success")  
+
+            else:
+                flash("خطاء في المعلومات المدخلة!", "error")
         else:
             flash("الهدية غير موجودة!", "error")
 
