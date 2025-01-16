@@ -202,4 +202,32 @@
   }
 </script>
 
+<script>
+let currentPrizeId = {{ prize.id if prize else 'null' }};
+
+function checkCurrentPrize() {
+    fetch('/check_current_prize')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error checking prize:', data.error);
+                return;
+            }
+            
+            // If there's no current prize ID (first load) or the prize has changed
+            if (currentPrizeId === null || (data.id !== null && data.id !== currentPrizeId)) {
+                console.log('Prize changed, reloading page...');
+                location.reload();
+            }
+            currentPrizeId = data.id;
+        })
+        .catch(error => {
+            console.error('Error checking prize:', error);
+        });
+}
+
+// Check every 5 seconds
+setInterval(checkCurrentPrize, 5000);
+</script>
+
 {% endblock %}

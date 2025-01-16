@@ -52,17 +52,28 @@
         </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; padding:15px; margin-block: 15px; border-color: #085E9D; border-width: 2px; border-radius: 5px; border-style: solid;">
-        <a href="{{ url_for('export_to_excel') }}" class="text-danger">تصدير بيانات الضيوف</a>
-        <a style="color: 3085E9D;"> | </a>
-        <a href="{{ url_for('export_children_excel') }}" class="text-danger">تصدير بيانات الأطفال</a>
-        <a style="color: 3085E9D;"> | </a>
-        <a href="{{ url_for('backup_db') }}" class="text-danger">حفظ نسخة إحتياطية</a>
-        <a style="color: 3085E9D;"> | </a>
-        <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
-            <a href="#" class="text-danger" onclick="document.getElementById('file-upload').click();">إستعادة نسخة إحتياطية</a>
-            <input type="file" name="file" id="file-upload" style="display: none;" onchange="this.form.submit();">
-        </form>
+    <div class="border border-2 rounded p-3 mb-4" style="border-color: #085E9D !important;">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('export_to_excel') }}" class="btn btn-outline-primary">
+                <i class="fas fa-file-excel me-2"></i>
+                تصدير البيانات
+            </a>
+            
+            <div class="btn-group">
+                <a href="{{ url_for('backup_db') }}" class="btn btn-outline-success">
+                    <i class="fas fa-download me-2"></i>
+                    حفظ نسخة إحتياطية
+                </a>
+                
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_file') }}" class="d-inline">
+                    <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('file-upload').click();">
+                        <i class="fas fa-upload me-2"></i>
+                        إستعادة نسخة إحتياطية
+                    </button>
+                    <input type="file" name="file" id="file-upload" accept=".db" style="display: none;" onchange="confirmRestore(this);">
+                </form>
+            </div>
+        </div>
     </div>  
 
     <div>
@@ -92,9 +103,12 @@
                     <th>الجنس</th>
                     <th>المدينة</th>
                     <th>تأكيد الحضور</th>
-                    <!-- <th>مقترحات</th> -->
                     <th>تم حضوره</th>
                     <th></th>              
+                </tr>
+                <tr>
+                    <th>فاز بجائزة</th>
+                    <th>اسم الجائزة</th>
                 </tr>
             </thead>
             <tbody>
@@ -106,8 +120,6 @@
                         <a class="text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف
                             <span class="material-symbols-outlined">delete</span>
                         </a>
-                        
-
                     </td>
                 </tr>
 
@@ -120,6 +132,10 @@
                     <td>{{ guest.city }}</td>
                     <td>{% if guest.attendance=='سوف أحضر باذن الله' %}نعم{% else %}أعتذر{%endif%}</td>
                     <td>{% if guest.is_attended %}حضر{% else %}لم يحضر{%endif%}</td>
+                </tr>
+                <tr>
+                    <td>{% if guest.prize_id %}نعم{% else %}لا{%endif%}</td>
+                    <td>{% if guest.prize_id %}{{ guest.prize.name }}{% else %}-{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -150,4 +166,18 @@
     </div>
     <br>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmRestore(input) {
+    if (input.files && input.files[0]) {
+        if (!confirm('هل أنت متأكد من استعادة قاعدة البيانات؟ سيتم عمل نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة.')) {
+            input.value = '';
+            return;
+        }
+        input.form.submit();
+    }
+}
+</script>
 {% endblock %}

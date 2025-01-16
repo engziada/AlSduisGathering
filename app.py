@@ -59,8 +59,9 @@ if os.environ.get('RENDER'):
     db_path = '/var/data/registrations.db'
     os.makedirs('/var/data', exist_ok=True)
 else:
-    # Local development
-    db_path = 'registrations.db'
+    # Local development - use instance folder
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'registrations.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -107,6 +108,8 @@ class Registration(db.Model):
     registration_number = db.Column(db.String(4), unique=True)
     prize_id = db.Column(db.Integer, db.ForeignKey("prize.id", name="fk_reg_prize_id"))
     is_attended = db.Column(db.Boolean, default=False)
+    # Add relationship to Prize model
+    prize = db.relationship('Prize', backref='winner', lazy=True)
 
 
 # Define the Prize model
@@ -718,8 +721,8 @@ def admin():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    # Get guest statistics
-    guests_query = Registration.query
+    # Get guest statistics with prize information
+    guests_query = Registration.query.outerjoin(Prize, Registration.prize_id == Prize.id)
     guests = guests_query.order_by(Registration.id.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
@@ -797,155 +800,221 @@ def delete_guest(guest_phoneno):
 @app.route("/export")
 @role_required(['admin'])
 def export_to_excel():
-    registrations = Registration.query.all()
-    children = Children.query.all()
-
-    # Create registration DataFrame
-    registration_data = []
-    for reg in registrations:
-        registration_data.append({
-            'رقم التسجيل': reg.registration_number,
-            'رقم الجوال': reg.phone_number,
-            'الاسم الأول': reg.first_name,
-            'اسم العائلة': reg.family_name,
-            'اسم الأب': reg.father_name,
-            'اسم الجد الأول': reg.first_grand_name,
-            'اسم الجد الثاني': reg.second_grand_name,
-            'اسم الجد الثالث': reg.third_grand_name,
-            'العلاقة': reg.relation,
-            'العمر': reg.age,
-            'الجنس': reg.gender,
-            'المدينة': reg.city,
-            'الحضور': reg.attendance,
-            'الأفكار': reg.ideas
-        })
-    
-    # Create children DataFrame
-    children_data = []
-    for child in children:
-        children_data.append({
-            'رقم التسجيل': child.registration_number,
-            'رقم جوال ولي الأمر': child.parent_phone,
-            'اسم الطفل': child.first_name,
-            'اسم الأب': child.father_name,
-            'اسم الجد': child.grandfather_name,
-            'اسم العائلة': child.family_name,
-            'الجنس': child.gender,
-            'العمر': child.age,
-            'رقم الطوارئ': child.emergency_phone
-        })
-
-    # Create Excel writer object
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # Write registrations to first sheet
-        pd.DataFrame(registration_data).to_excel(writer, sheet_name='التسجيلات', index=False)
-        # Write children to second sheet
-        pd.DataFrame(children_data).to_excel(writer, sheet_name='الأطفال', index=False)
-
-    output.seek(0)
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name='registrations.xlsx'
-    )
-
-
-@app.route("/export_children_excel")
-@role_required(['admin'])
-def export_children_excel():
-    # Query all children
-    children = Children.query.all()
-    
-    # Create a new workbook and select the active sheet
+    # Create a new workbook
     wb = Workbook()
-    ws = wb.active
-    ws.title = "بيانات الأطفال"
     
-    # Add headers
-    headers = ["رقم التسجيل", "رقم جوال ولي الأمر", "اسم ولي الأمر", "الاسم الأول", "اسم الأب", "اسم الجد", "اسم العائلة", "الجنس", "العمر", "رقم الطوارئ"]
-    ws.append(headers)
+    # Create guests sheet
+    ws_guests = wb.active
+    ws_guests.title = "بيانات الضيوف"
     
-    # Add data
-    for child in children:
+    # Add headers for guests
+    headers = [
+        "الإسم الأول",
+        "إسم الأب",
+        "إسم الجد الأول",
+        "إسم الجد الثاني",
+        "إسم الجد الثالث",
+        "إسم العائلة",
+        "رقم الجوال",
+        "رقم التسجيل",
+        "صلة القرابة",
+        "السن",
+        "الجنس",
+        "المدينة",
+        "تأكيد الحضور",
+        "المقترحات",
+        "تم الحضور",
+        "فاز بجائزة",
+        "اسم الجائزة"
+    ]
+    
+    # Write headers
+    for col, header in enumerate(headers, start=1):
+        cell = ws_guests.cell(row=1, column=col)
+        cell.value = header
+        # Apply style
+        cell.font = cell.font.copy(bold=True)
+        cell.alignment = cell.alignment.copy(horizontal="center")
+    
+    # Get all guests
+    guests = Registration.query.outerjoin(Prize, Registration.prize_id == Prize.id).all()
+    
+    # Write guest data
+    for row, guest in enumerate(guests, start=2):
+        data = [
+            guest.first_name,
+            guest.father_name,
+            guest.first_grand_name,
+            guest.second_grand_name,
+            guest.third_grand_name,
+            guest.family_name,
+            guest.phone_number,
+            guest.registration_number,
+            guest.relation or "",
+            guest.age,
+            guest.gender,
+            guest.city,
+            "نعم" if guest.attendance == "سوف أحضر باذن الله" else "لا",
+            guest.ideas or "",
+            "نعم" if guest.is_attended else "لا",
+            "نعم" if guest.prize_id else "لا",
+            guest.prize.name if guest.prize_id else "-"
+        ]
+        
+        for col, value in enumerate(data, start=1):
+            cell = ws_guests.cell(row=row, column=col)
+            cell.value = value
+            cell.alignment = cell.alignment.copy(horizontal="center")
+    
+    # Create children sheet
+    ws_children = wb.create_sheet(title="بيانات الأطفال")
+    
+    # Add headers for children
+    children_headers = [
+        "الإسم الأول",
+        "إسم الأب",
+        "إسم الجد",
+        "إسم العائلة",
+        "الجنس",
+        "العمر",
+        "رقم جوال الطوارئ",
+        "رقم التسجيل",
+        "رقم جوال ولي الأمر",
+        "إسم ولي الأمر"
+    ]
+    
+    # Write headers for children
+    for col, header in enumerate(children_headers, start=1):
+        cell = ws_children.cell(row=1, column=col)
+        cell.value = header
+        cell.font = cell.font.copy(bold=True)
+        cell.alignment = cell.alignment.copy(horizontal="center")
+    
+    # Get all children
+    children = Children.query.all()
+    
+    # Write children data
+    for row, child in enumerate(children, start=2):
         # Get parent's data
         parent = Registration.query.filter_by(phone_number=child.parent_phone).first()
         parent_full_name = f"{parent.first_name} {parent.father_name} {parent.first_grand_name} {parent.family_name}" if parent else "غير معروف"
         
-        ws.append([
-            child.registration_number,
-            child.parent_phone,
-            parent_full_name,
+        data = [
             child.first_name,
             child.father_name,
             child.grandfather_name,
             child.family_name,
             child.gender,
             child.age,
-            child.emergency_phone
-        ])
+            child.emergency_phone,
+            child.registration_number,
+            child.parent_phone,
+            parent_full_name
+        ]
+        
+        for col, value in enumerate(data, start=1):
+            cell = ws_children.cell(row=row, column=col)
+            cell.value = value
+            cell.alignment = cell.alignment.copy(horizontal="center")
     
-    # Set column width
-    for col in ws.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column].width = adjusted_width
-    
-    # Create response
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
+    # Save to BytesIO
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
     
     return send_file(
-        output,
+        excel_file,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"children_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        download_name=f"registrations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     )
 
 
-# Route to take backup of the database
+# Route to download database backup
 @app.route("/backup_db")
 @role_required(['admin'])
 def backup_db():
     try:
-        # Set backup directory based on environment
-        if os.environ.get('RENDER'):
-            backup_dir = '/var/data/backup'
-        else:
-            backup_dir = 'backup'
+        # Ensure database exists
+        if not os.path.exists(db_path):
+            flash("قاعدة البيانات غير موجودة", "error")
+            return redirect(url_for("admin"))
             
-        os.makedirs(backup_dir, exist_ok=True)
+        # Create log directory
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Log')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Generate timestamp for filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = f"{backup_dir}/registrations_{timestamp}.db"
-        shutil.copy2(db_path, backup_file)
-        flash("تم أخذ نسخة احتياطية بنجاح", "success")
+        download_name = f"registrations_{timestamp}.db"
+        
+        # Log download
+        with open(os.path.join(log_dir, 'backup.log'), 'a', encoding='utf-8') as f:
+            f.write(f"{datetime.now()}: Database downloaded as {download_name}\n")
+            
+        # Return file as attachment
+        return send_file(
+            db_path,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='application/x-sqlite3'
+        )
+            
     except Exception as e:
-        flash(f"حدث خطأ أثناء أخذ النسخة الاحتياطية: {str(e)}", "error")
-    return redirect(url_for("admin"))
-
+        flash(f"حدث خطأ أثناء تحميل قاعدة البيانات: {str(e)}", "error")
+        # Log error
+        with open(os.path.join(log_dir, 'backup.log'), 'a', encoding='utf-8') as f:
+            f.write(f"{datetime.now()}: Error during download - {str(e)}\n")
+        return redirect(url_for("admin"))
 
 @app.route('/upload/', methods=['GET', 'POST'])
 @role_required(['admin'])
 def upload_file():
     if request.method == 'POST':
-        ic(request.files)
-        file = request.files['file'] # the name of the file input field in the HTML form
-        if file:
-            # filename = secure_filename(file.filename) # sanitize the file name
-            file.save(os.path.join('instance', 'registrations.db')) # save the file to the upload folder
+        # Create log directory first
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Log')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        try:
+            if 'file' not in request.files:
+                flash("لم يتم تحديد ملف", "error")
+                return redirect(url_for("admin"))
+                
+            file = request.files['file']
+            if file.filename == '':
+                flash("لم يتم تحديد ملف", "error")
+                return redirect(url_for("admin"))
+                
+            # Validate file extension
+            if not file.filename.endswith('.db'):
+                flash("يجب أن يكون الملف بامتداد .db", "error")
+                return redirect(url_for("admin"))
+                
+            # Create backup of current database before restore
+            if os.path.exists(db_path):
+                backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backup')
+                os.makedirs(backup_dir, exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                pre_restore_backup = os.path.join(backup_dir, f"pre_restore_{timestamp}.db")
+                shutil.copy2(db_path, pre_restore_backup)
+                
+            # Ensure instance directory exists
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                
+            # Save uploaded file
+            file.save(db_path)
+            
+            # Log restore operation
+            with open(os.path.join(log_dir, 'restore.log'), 'a', encoding='utf-8') as f:
+                f.write(f"{datetime.now()}: Database restored from uploaded file. Previous DB backed up at {pre_restore_backup if os.path.exists(db_path) else 'No previous DB'}\n")
+                
             flash("تم إستعادة قاعدة البيانات بنجاح", "success")
-            return redirect(url_for("admin"))
+        except Exception as e:
+            flash(f"حدث خطأ أثناء إستعادة قاعدة البيانات: {str(e)}", "error")
+            # Log error
+            with open(os.path.join(log_dir, 'restore.log'), 'a', encoding='utf-8') as f:
+                f.write(f"{datetime.now()}: Error during restore - {str(e)}\n")
     return redirect(url_for("admin"))
-
 
 # Route to restore the database from backup
 @app.route("/restore_db", methods=["POST"])
@@ -1099,6 +1168,22 @@ def reset_prize(id):
     flash("تم حذف رقم التسجيل بنجاح!", "success")
     return redirect(url_for("list_prizes"))
 
+# Route to check current prize
+@app.route('/check_current_prize')
+@role_required(['admin'])
+def check_current_prize():
+    try:
+        current_prize = Prize.query.filter_by(is_next=True).first()
+        if current_prize:
+            return jsonify({
+                'id': current_prize.id,
+                'name': current_prize.name,
+                'description': current_prize.description
+            })
+        return jsonify({'id': None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ------------------------------------------------------------------------------
 # ''' Withdrawal Routes '''
 # ------------------------------------------------------------------------------
@@ -1145,53 +1230,52 @@ def get_filtered_reg_no(prize_id: int):
     # Check if allowed_families is not empty
     if allowed_families:
         families = [f.strip() for f in allowed_families.split(",")]
-        if "أخرى" in families:
-            # If "أخرى" is selected, include all non-"السديس" families
-            family_condition = Registration.family_name != "السديس"
+        if "أخرى" in families and "السديس" in families:
+            # If both are selected, no family filter needed
+            pass
+        elif "أخرى" in families:
+            # If only "أخرى" is selected, exclude "السديس"
+            filter_conditions.append(Registration.family_name != "السديس")
+        elif "السديس" in families:
+            # If only "السديس" is selected
+            filter_conditions.append(Registration.family_name == "السديس")
         else:
-            # Otherwise, only include exact matches for the specified families
-            family_condition = Registration.family_name.in_(families)
-        filter_conditions.append(family_condition)
+            # For any other specific families
+            filter_conditions.append(Registration.family_name.in_(families))
 
-    # Check if allowed_age_range is not 'الكل'
-    if allowed_age_range and allowed_age_range != "الكل":
-        age_ranges = allowed_age_range.split(",")
-        age_range_condition = or_(
-            *[Registration.age.contains(age_range) for age_range in age_ranges]
-        )
-        filter_conditions.append(age_range_condition)
+    # Check if allowed_age_range is not empty
+    if allowed_age_range:
+        age_ranges = [age.strip() for age in allowed_age_range.split(",")]
+        if "الكل" not in age_ranges:
+            age_range_condition = or_(
+                *[Registration.age.like(f"%{age_range}%") for age_range in age_ranges]
+            )
+            filter_conditions.append(age_range_condition)
 
-    # Check if allowed_gender is not 'الكل'
-    if allowed_gender and allowed_gender != "الكل":
-        genders = allowed_gender.split(",")
-        gender_condition = or_(
-            *[Registration.gender.contains(gender) for gender in genders]
-        )
-        filter_conditions.append(gender_condition)
+    # Check if allowed_gender is not empty
+    if allowed_gender:
+        genders = [gender.strip() for gender in allowed_gender.split(",")]
+        if "الكل" not in genders:
+            gender_condition = or_(
+                *[Registration.gender.like(f"%{gender}%") for gender in genders]
+            )
+            filter_conditions.append(gender_condition)
 
     # Apply the filter conditions
     if filter_conditions:
         final_query = base_query.filter(and_(*filter_conditions))
     else:
         final_query = base_query
-    
+
     print("\n=== Query Debug Info ===")
-    print(f"SQL Query: {str(final_query)}")
-    
-    # Execute the query to get the filtered records
-    registrations_without_prize = final_query.all()
-    
+    print(f"SQL Query: {final_query}")
+
+    # Get the filtered guests
+    filtered_guests = final_query.all()
     print("\n=== Filtered Guests ===")
-    print(f"Total Filtered Guests: {len(registrations_without_prize)}")
-    for reg in registrations_without_prize:
-        print(f"Guest: {reg.first_name} {reg.father_name} {reg.family_name}")
-        print(f"Registration Number: {reg.registration_number}")
-        print(f"Age: {reg.age}")
-        print(f"Gender: {reg.gender}")
-        print(f"Is Attended: {reg.is_attended}")
-        print("---")
+    print(f"Total Filtered Guests: {len(filtered_guests)}")
     
-    return registrations_without_prize
+    return filtered_guests
 
 
 # Route to get random registration number
