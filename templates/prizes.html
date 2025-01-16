@@ -5,7 +5,7 @@
 
 {% block content %}
   <h2>الهدايا</h2>
-  <form method="post">
+  <form method="post" id="prizeForm">
     {{ filters.hidden_tag() }}
     <div class="border p-3 m-3 row ">
       <div class="col">
@@ -55,10 +55,8 @@
 
             {%if prize.guest_registration_number==None and not prize.is_next%}
               <button type="submit" class="btn btn-success btn-sm" style="width: 8em" name="prize_id" value="{{ prize.id }}">إبدأ السحب</button>
-              <input type="hidden" name="action" value="start_draw">
             {%elif prize.guest_registration_number==None and prize.is_next%}
-              <button type="submit" class="btn btn-primary btn-sm" style="width: 8em" name="prize_id" value="{{ prize.id }}">جاري السحب</button>
-              <input type="hidden" name="action" value="end_draw">
+              <button type="button" class="btn btn-primary btn-sm refresh-status" style="width: 8em">جاري السحب</button>
             {%else%}
               <form action="{{ url_for('reset_prize', id=prize.id) }}" method="post" style="display: inline-block;">
                 <button type="submit" class="btn btn-warning btn-sm" style="width: 8em" onclick="return confirm('هل أنت متأكد من إعادة التهيئة؟')">إعادة التهيئة</button>
@@ -71,5 +69,36 @@
   </table>
   <a href="{{ url_for('add_prize') }}" class="btn btn-success">إضافة</a>
 </form>
+
+<script>
+function refreshPrizeStatus() {
+    fetch('{{ url_for("list_prizes") }}')
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTbody = doc.querySelector('tbody').innerHTML;
+            const currentTbody = document.querySelector('tbody').innerHTML;
+            
+            // Only update if there are changes
+            if (newTbody !== currentTbody) {
+                document.querySelector('tbody').innerHTML = newTbody;
+                console.log('Prizes refreshed:', new Date().toLocaleString());
+            }
+        })
+        .catch(error => console.error('Error refreshing prizes:', error));
+}
+
+// Start auto refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto refresh every 5 seconds
+    setInterval(refreshPrizeStatus, 5000);
+
+    // Manual refresh button
+    document.querySelectorAll('.refresh-status').forEach(button => {
+        button.addEventListener('click', refreshPrizeStatus);
+    });
+});
+</script>
 
 {% endblock %}

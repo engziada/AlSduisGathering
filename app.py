@@ -1005,31 +1005,22 @@ def list_prizes():
         allowed_age_range = filters.age.data
         allowed_gender = filters.gender.data
         prize_id = request.form.get("prize_id")
-        action = request.form.get("action")  
-        print("prize_id:",prize_id,"action:",action)
+        print("prize_id:",prize_id)
         
         # Set filter on the next prize
         prize = db.session.get(Prize, prize_id)  # Updated to use session.get()
         if prize:
-            if action == "start_draw":
-                prize.allowed_families = ",".join(allowed_families) if allowed_families else None
-                prize.allowed_age_range = ",".join(allowed_age_range) if allowed_age_range else None
-                prize.allowed_gender = ",".join(allowed_gender) if allowed_gender else None
+            prize.allowed_families = ",".join(allowed_families) if allowed_families else None
+            prize.allowed_age_range = ",".join(allowed_age_range) if allowed_age_range else None
+            prize.allowed_gender = ",".join(allowed_gender) if allowed_gender else None
 
-                # Set is_next to the selected prize only
-                for p in prizes:
-                    p.is_next = p.id == int(prize_id)
+            # Set is_next to the selected prize only
+            for p in prizes:
+                p.is_next = p.id == int(prize_id)
 
-                db.session.commit()
-                flash("تم تحديد الهدية للسحب بنجاح!", "success")
-
-            elif action == "end_draw":
-                prize.is_next = False
-                db.session.commit()
-                flash("تم انهاء السحب للهدية الحالية", "success")  
-
-            else:
-                flash("خطاء في المعلومات المدخلة!", "error")
+            db.session.commit()
+            flash("تم تحديد الهدية للسحب بنجاح!", "success")
+            
         else:
             flash("الهدية غير موجودة!", "error")
 
@@ -1105,7 +1096,7 @@ def reset_prize(id):
     sel_reg= Registration.query.filter_by(registration_number=sel_regno).first()
     sel_reg.prize_id=None
     db.session.commit()
-    flash("Registration number deleted successfully!", "success")
+    flash("تم حذف رقم التسجيل بنجاح!", "success")
     return redirect(url_for("list_prizes"))
 
 # ------------------------------------------------------------------------------
@@ -1259,7 +1250,7 @@ def confirm_prize(prize_id, reg_no):
     ).update({Registration.prize_id: prize_id})
     # Commit the changes
     db.session.commit()
-    return jsonify("Success")
+    return jsonify("تم بنجاح")
 
 
 # ------------------------------------------------------------------------------

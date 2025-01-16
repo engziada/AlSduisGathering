@@ -110,6 +110,21 @@ To revert to this checkpoint:
 git checkout $(git rev-list -n 1 --before="2025-01-01 23:25:07" main)
 ```
 
+### Checkpoint 6 (2025-01-16)
+- Changed all English flash messages to Arabic for better consistency:
+  - Updated "Registration number deleted successfully!" to "تم حذف رقم التسجيل بنجاح!"
+  - Updated "Success" to "تم بنجاح" in prize confirmation
+- Added auto-refresh functionality to prizes page:
+  - Table updates automatically every 5 seconds
+  - Updates only occur when changes are detected
+  - Added console logging for debugging
+  - Maintained manual refresh button functionality
+
+To revert to this checkpoint:
+```bash
+git checkout $(git rev-list -n 1 --before="2025-01-16 02:29:42" main)
+```
+
 ## متطلبات النظام
 - Python 3.8+
 - Flask
