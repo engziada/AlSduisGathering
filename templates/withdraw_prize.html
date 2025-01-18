@@ -204,11 +204,25 @@
 
 <script>
 let currentPrizeId = {{ prize.id if prize else 'null' }};
+let checkPrizeInterval = null;
 
 function checkCurrentPrize() {
     fetch('/check_current_prize')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    // Session expired, redirect to login
+                    console.log('Session expired, redirecting to login...');
+                    window.location.href = '/admin_login';
+                    return;
+                }
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data) return; // Stop if we got redirected
+            
             if (data.error) {
                 console.error('Error checking prize:', data.error);
                 return;
@@ -223,11 +237,26 @@ function checkCurrentPrize() {
         })
         .catch(error => {
             console.error('Error checking prize:', error);
+            // If we get consistent errors, stop checking
+            if (error.message.includes('<!DOCTYPE')) {
+                console.log('Session appears to be invalid, stopping prize checks');
+                if (checkPrizeInterval) {
+                    clearInterval(checkPrizeInterval);
+                }
+                window.location.href = '/admin_login';
+            }
         });
 }
 
-// Check every 5 seconds
-setInterval(checkCurrentPrize, 5000);
+// Start checking every 5 seconds
+checkPrizeInterval = setInterval(checkCurrentPrize, 5000);
+
+// Clean up interval when leaving the page
+window.addEventListener('beforeunload', function() {
+    if (checkPrizeInterval) {
+        clearInterval(checkPrizeInterval);
+    }
+});
 </script>
 
 {% endblock %}

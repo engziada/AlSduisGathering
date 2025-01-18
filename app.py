@@ -1172,6 +1172,10 @@ def reset_prize(id):
 @app.route('/check_current_prize')
 @role_required(['admin'])
 def check_current_prize():
+    # Check if user is authenticated
+    if 'role' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
     try:
         current_prize = Prize.query.filter_by(is_next=True).first()
         if current_prize:
@@ -1182,6 +1186,7 @@ def check_current_prize():
             })
         return jsonify({'id': None})
     except Exception as e:
+        app.logger.error(f"Error checking prize: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # ------------------------------------------------------------------------------
