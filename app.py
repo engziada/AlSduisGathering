@@ -784,18 +784,31 @@ def admin_post():
     return render_template('admin.html', guests=guests)
 
 # Delete Guest
-@app.route("/delete_guest/<string:guest_phoneno>", methods=["GET", "POST"])
+@app.route("/delete_guest/<string:guest_phoneno>")
+@role_required(['admin'])
 def delete_guest(guest_phoneno):
     try:
+        # Get the guest record
         guest = Registration.query.filter_by(phone_number=guest_phoneno).first()
-        db.session.delete(guest)
-        db.session.commit()
-        flash("تم حذف بيانات الضيف بنجاح", "success")
+        if guest:
+            # If guest has a prize, reset the prize's guest_registration_number
+            if guest.prize_id:
+                prize = Prize.query.get(guest.prize_id)
+                if prize:
+                    prize.guest_registration_number = None
+                    db.session.add(prize)
+            
+            # Delete the guest
+            db.session.delete(guest)
+            db.session.commit()
+            flash("تم حذف الضيف بنجاح", "success")
+        else:
+            flash("لم يتم العثور على الضيف", "error")
         return redirect(url_for("admin"))
-    except:
-        flash("فشلت عملية الحذف", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء حذف الضيف: {str(e)}", "error")
         return redirect(url_for("admin"))
-
 
 @app.route("/export")
 @role_required(['admin'])
@@ -1145,27 +1158,69 @@ def edit_prize(id):
 
 
 # Create route for deleting a prize
-@app.route("/prizes/delete/<int:id>", methods=["POST"])
+@app.route("/prizes/delete/<int:id>")
+@role_required(['admin'])
 def delete_prize(id):
-    prize = Prize.query.get(id)
-    ic(prize)
-    db.session.delete(prize)
-    db.session.commit()
-    flash("تم حذف الهدية بنجاح", "success")
-    return redirect(url_for("list_prizes"))
+    try:
+        prize = Prize.query.get(id)
+        if prize:
+            # If prize is assigned to a guest, reset the guest's prize_id
+            if prize.guest_registration_number:
+                guest = Registration.query.filter_by(registration_number=prize.guest_registration_number).first()
+                if guest:
+                    guest.prize_id = None
+                    db.session.add(guest)
+            
+            # Delete the prize
+            db.session.delete(prize)
+            db.session.commit()
+            flash("تم حذف الهدية بنجاح", "success")
+        else:
+            flash("لم يتم العثور على الهدية", "error")
+        return redirect(url_for("list_prizes"))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء حذف الهدية: {str(e)}", "error")
+        return redirect(url_for("list_prizes"))
 
 
 # Create route to delete registration number from the prize and search for registration
 # number in 'Registeration' table and delete 'prize_id'
 @app.route("/prizes/reset/<int:id>", methods=["POST"])
+@role_required(['admin'])
 def reset_prize(id):
-    sel_prize = db.session.get(Prize, id)  # Updated to use session.get()
-    sel_regno=sel_prize.guest_registration_number
-    sel_prize.guest_registration_number = None
-    sel_reg= Registration.query.filter_by(registration_number=sel_regno).first()
-    sel_reg.prize_id=None
-    db.session.commit()
-    flash("تم حذف رقم التسجيل بنجاح!", "success")
+    try:
+        # Get the prize
+        prize = Prize.query.get_or_404(id)
+        if not prize.guest_registration_number:
+            flash("لا يوجد رقم تسجيل مرتبط بهذه الجائزة", "warning")
+            return redirect(url_for("list_prizes"))
+            
+        # Find the registration with this number
+        sel_reg = Registration.query.filter_by(registration_number=prize.guest_registration_number).first()
+        
+        # Update prize
+        prize.guest_registration_number = None
+        
+        # Update registration if it exists
+        if sel_reg:
+            sel_reg.prize_id = None
+            
+        # Commit changes
+        db.session.commit()
+        
+        # Log the reset
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Log')
+        os.makedirs(log_dir, exist_ok=True)
+        with open(os.path.join(log_dir, 'prize_reset.log'), 'a', encoding='utf-8') as f:
+            f.write(f"{datetime.now()}: Prize {prize.name} (ID: {prize.id}) reset. Previous registration number: {prize.guest_registration_number}\n")
+            
+        flash("تم حذف رقم التسجيل بنجاح!", "success")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error resetting prize {id}: {str(e)}")
+        flash(f"حدث خطأ أثناء إعادة تعيين الجائزة: {str(e)}", "error")
+        
     return redirect(url_for("list_prizes"))
 
 # Route to check current prize
@@ -1516,6 +1571,26 @@ def short_ticket(phone_number):
     return render_template("short_ticket.html", 
                          registration=registration, 
                          children=children)
+
+# Route to clear all data from database
+@app.route("/clear_all_data")
+@role_required(['admin'])
+def clear_all_data():
+    try:
+        # Delete all prizes first to handle foreign key constraints
+        Prize.query.delete()
+        # Delete all registrations
+        Registration.query.delete()
+        # Delete all children
+        Children.query.delete()
+        
+        db.session.commit()
+        flash("تم مسح جميع البيانات بنجاح", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء مسح البيانات: {str(e)}", "error")
+    
+    return redirect(url_for("admin"))
 
 # ==============================================================================
 if __name__ == "__main__":

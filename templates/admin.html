@@ -72,6 +72,11 @@
                     </button>
                     <input type="file" name="file" id="file-upload" accept=".db" style="display: none;" onchange="confirmRestore(this);">
                 </form>
+
+                <button type="button" class="btn btn-outline-danger" onclick="confirmClearData()">
+                    <i class="fas fa-trash-alt me-2"></i>
+                    مسح جميع البيانات
+                </button>
             </div>
         </div>
     </div>  
@@ -171,12 +176,16 @@
 {% block scripts %}
 <script>
 function confirmRestore(input) {
-    if (input.files && input.files[0]) {
-        if (!confirm('هل أنت متأكد من استعادة قاعدة البيانات؟ سيتم عمل نسخة احتياطية من قاعدة البيانات الحالية قبل الاستعادة.')) {
-            input.value = '';
-            return;
+    if (input.files.length > 0) {
+        if (confirm('هل أنت متأكد من إستعادة النسخة الإحتياطية؟ سيتم إستبدال جميع البيانات الحالية')) {
+            input.form.submit();
         }
-        input.form.submit();
+    }
+}
+
+function confirmClearData() {
+    if (confirm('هل أنت متأكد من مسح جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء')) {
+        window.location.href = "{{ url_for('clear_all_data') }}";
     }
 }
 </script>
