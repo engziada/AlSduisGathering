@@ -81,6 +81,206 @@
         </div>
     </div>  
 
+    <div class="border border-2 rounded p-3 mb-4">
+        <form method="GET" action="{{ url_for('admin') }}" class="row g-3">
+            <!-- Search Box -->
+            <div class="col-md-12 mb-3">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="البحث بالإسم أو رقم التسجيل..." value="{{ search_query }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search me-1"></i>
+                        بحث
+                    </button>
+                    <a href="{{ url_for('admin') }}" class="btn btn-secondary">
+                        <i class="fas fa-undo me-1"></i>
+                        إعادة تعيين
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <select name="gender" class="form-select" id="genderFilter" onchange="this.form.submit()">
+                        <option value="all" {% if gender_filter == 'all' %}selected{% endif %}>جميع الأجناس</option>
+                        <option value="ذكر" {% if gender_filter == 'ذكر' %}selected{% endif %}>ذكر</option>
+                        <option value="أنثى" {% if gender_filter == 'أنثى' %}selected{% endif %}>أنثى</option>
+                    </select>
+                    <label for="genderFilter">الجنس</label>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <select name="attendance" class="form-select" id="attendanceFilter" onchange="this.form.submit()">
+                        <option value="all" {% if attendance_filter == 'all' %}selected{% endif %}>جميع حالات الحضور</option>
+                        <option value="سوف أحضر باذن الله" {% if attendance_filter == 'سوف أحضر باذن الله' %}selected{% endif %}>سيحضر</option>
+                        <option value="أعتذر عن الحضور" {% if attendance_filter == 'أعتذر عن الحضور' %}selected{% endif %}>معتذر</option>
+                    </select>
+                    <label for="attendanceFilter">حالة الحضور</label>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <select name="is_attended" class="form-select" id="isAttendedFilter" onchange="this.form.submit()">
+                        <option value="all" {% if is_attended_filter == 'all' %}selected{% endif %}>جميع حالات التأكيد</option>
+                        <option value="yes" {% if is_attended_filter == 'yes' %}selected{% endif %}>حضر</option>
+                        <option value="no" {% if is_attended_filter == 'no' %}selected{% endif %}>لم يحضر</option>
+                    </select>
+                    <label for="isAttendedFilter">تأكيد الحضور</label>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>
+                {% if search_query or gender_filter != 'all' or attendance_filter != 'all' or is_attended_filter != 'all' %}
+                    تم العثور على {{ total_guests }} ضيف
+                {% else %}
+                    إجمالي عدد الضيوف: {{ guests_count }}
+                {% endif %}
+            </h5>
+            {% if guests.total > 0 %}
+            <div class="text-muted">
+                عرض {{ (guests.page - 1) * guests.per_page + 1 }} إلى 
+                {{ min(guests.page * guests.per_page, guests.total) }}
+                من أصل {{ guests.total }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for guest in guests.items %}
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom-0 pt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary rounded-pill">{{ loop.index }}</span>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-dark" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}" 
+                                       onclick="return confirm('هل أنت متأكد من حذف هذا الضيف؟')">
+                                        <i class="fas fa-trash-alt me-2"></i>
+                                        حذف
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">
+                        {{ guest.first_name }} {{ guest.father_name }} {{ guest.family_name }}
+                    </h5>
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-phone me-2"></i>{{ guest.phone_number }}</small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-hashtag me-2"></i>{{ guest.registration_number }}</small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-map-marker-alt me-2"></i>{{ guest.city }}</small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-user me-2"></i>{{ guest.gender }}</small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-calendar-alt me-2"></i>{{ guest.age }}</small>
+                    </div>
+                    {% if guest.relation %}
+                    <div class="mb-2">
+                        <small class="text-muted"><i class="fas fa-users me-2"></i>{{ guest.relation }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if guest.attendance == 'سوف أحضر باذن الله' %}
+                                <span class="badge bg-success">سيحضر</span>
+                            {% else %}
+                                <span class="badge bg-danger">معتذر</span>
+                            {% endif %}
+
+                            {% if guest.is_attended %}
+                                <span class="badge bg-success">حضر</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">لم يحضر</span>
+                            {% endif %}
+                        </div>
+                        {% if guest.prize %}
+                            <span class="badge bg-primary">
+                                <i class="fas fa-gift me-1"></i>
+                                {{ guest.prize.name }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                لا يوجد ضيوف مطابقين لمعايير البحث
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if guests.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <!-- First Page -->
+            <li class="page-item {% if not guests.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin', page=1, search=search_query, gender=gender_filter, attendance=attendance_filter, is_attended=is_attended_filter) }}">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+            
+            <!-- Previous Page -->
+            <li class="page-item {% if not guests.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin', page=guests.prev_num, search=search_query, gender=gender_filter, attendance=attendance_filter, is_attended=is_attended_filter) }}">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+
+            <!-- Page Numbers -->
+            {% for page_num in range(max(1, guests.page - 2), min(guests.pages + 1, guests.page + 3)) %}
+            <li class="page-item {% if page_num == guests.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('admin', page=page_num, search=search_query, gender=gender_filter, attendance=attendance_filter, is_attended=is_attended_filter) }}">
+                    {{ page_num }}
+                </a>
+            </li>
+            {% endfor %}
+
+            <!-- Next Page -->
+            <li class="page-item {% if not guests.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin', page=guests.next_num, search=search_query, gender=gender_filter, attendance=attendance_filter, is_attended=is_attended_filter) }}">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+
+            <!-- Last Page -->
+            <li class="page-item {% if not guests.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin', page=guests.pages, search=search_query, gender=gender_filter, attendance=attendance_filter, is_attended=is_attended_filter) }}">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
     <div>
         <form action="{{ url_for('admin') }}" method="post" class="py-3">
             {{ form.hidden_tag() }}
@@ -93,83 +293,6 @@
             </div>
         </form>
     </div>
-
-    <div class="table-responsive mt-4">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th class="border border-1">مسلسل</th>
-                    <th colspan="7">الإسم بالكامل</th>
-                <tr>
-                    <th>رقم الجوال</th>
-                    <th>رقم التسجيل</th>
-                    <th>صلة القرابة</th>
-                    <th>السن</th>
-                    <th>الجنس</th>
-                    <th>المدينة</th>
-                    <th>تأكيد الحضور</th>
-                    <th>تم حضوره</th>
-                    <th></th>              
-                </tr>
-                <tr>
-                    <th>فاز بجائزة</th>
-                    <th>اسم الجائزة</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for guest in guests.items %}
-                <tr>
-                    <td class="border border-1">{{ loop.index }}</td>
-                    <td colspan="7">{{ guest.first_name }} {{ guest.father_name }} {{ guest.first_grand_name }} {{ guest.second_grand_name }} {{ guest.third_grand_name }} {{ guest.family_name }}</td>
-                    <td class="border border-1 text-center" rowspan="2">
-                        <a class="text-danger" href="{{ url_for('delete_guest', guest_phoneno=guest.phone_number) }}" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف
-                            <span class="material-symbols-outlined">delete</span>
-                        </a>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>{{ guest.phone_number }}</td>
-                    <td>{{ guest.registration_number }}</td>
-                    <td>{{ guest.relation }}</td>
-                    <td>{{ guest.age|replace('سنة', '') }}</td>
-                    <td>{{ guest.gender }}</td>
-                    <td>{{ guest.city }}</td>
-                    <td>{% if guest.attendance=='سوف أحضر باذن الله' %}نعم{% else %}أعتذر{%endif%}</td>
-                    <td>{% if guest.is_attended %}حضر{% else %}لم يحضر{%endif%}</td>
-                </tr>
-                <tr>
-                    <td>{% if guest.prize_id %}نعم{% else %}لا{%endif%}</td>
-                    <td>{% if guest.prize_id %}{{ guest.prize.name }}{% else %}-{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination controls -->
-    <div class="pagination">
-        {% if guests.has_prev %}
-                <a href="{{ url_for('admin', page=1) }}">
-                    <span class="material-symbols-outlined">keyboard_double_arrow_right</span>
-                </a>
-
-            <a href="{{ url_for('admin', page=guests.prev_num) }}">
-                <span class="material-symbols-outlined">chevron_right</span>
-            </a>
-        {% endif %}
-        <span>{{ guests.page }} من {{ guests.pages }}</span>
-        {% if guests.has_next %}
-            <a href="{{ url_for('admin', page=guests.next_num) }}">
-                <span class="material-symbols-outlined">chevron_left</span>
-            </a>
-
-            <a href="{{ url_for('admin', page=guests.pages) }}">
-                <span class="material-symbols-outlined">keyboard_double_arrow_left</span>
-            </a>
-        {% endif %}
-    </div>
-    <br>
 
 {% endblock %}
 

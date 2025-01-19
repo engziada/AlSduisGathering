@@ -714,52 +714,90 @@ def admin_logout():
     flash('تم تسجيل الخروج بنجاح', 'success')
     return redirect(url_for('index'))
 
-@app.route("/admin/", methods=["GET"])
-@app.route("/admin", methods=["GET"])
+@app.route("/admin/", methods=["GET", "POST"])
+@app.route("/admin", methods=["GET", "POST"])
 @role_required(['admin'])
 def admin():
+    form = CloseRegistrationForm()
+    
+    # Handle registration status form submission
+    if form.validate_on_submit() and "reg_status_form" in request.form:
+        app.config["Close_Registrations"] = not app.config["Close_Registrations"]
+        flash("تم تحديث حالة التسجيل بنجاح", "success")
+        return redirect(url_for("admin"))
+
+    # Get search and filter parameters
+    search_query = request.args.get('search', '').strip()
+    gender_filter = request.args.get('gender', 'all')
+    attendance_filter = request.args.get('attendance', 'all')
+    is_attended_filter = request.args.get('is_attended', 'all')
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 12  # Show 12 cards per page (4 rows of 3 cards)
     
-    # Get guest statistics with prize information
-    guests_query = Registration.query.outerjoin(Prize, Registration.prize_id == Prize.id)
-    guests = guests_query.order_by(Registration.id.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
-    guests_count = guests_query.count()
-    guest_attendance = guests_query.filter(
-        Registration.attendance == "سوف أحضر باذن الله"
-    ).count()
-    guest_not_attendance = guests_query.filter(
-        Registration.attendance == "أعتذر عن الحضور"
-    ).count()
-    guest_is_attended = guests_query.filter(Registration.is_attended.is_(True)).count()
-    guest_male = guests_query.filter(Registration.gender == "ذكر").count()
-    guest_female = guests_query.filter(Registration.gender == "أنثى").count()
+    # Build the base query
+    query = Registration.query
     
-    # Get children statistics
+    # Apply search if provided
+    if search_query:
+        search_terms = search_query.split()
+        search_conditions = []
+        for term in search_terms:
+            search_conditions.append(
+                or_(
+                    Registration.first_name.ilike(f'%{term}%'),
+                    Registration.family_name.ilike(f'%{term}%'),
+                    Registration.father_name.ilike(f'%{term}%'),
+                    Registration.registration_number.ilike(f'%{term}%')
+                )
+            )
+        query = query.filter(and_(*search_conditions))
+    
+    # Apply filters
+    if gender_filter != 'all':
+        query = query.filter(Registration.gender == gender_filter)
+    if attendance_filter != 'all':
+        query = query.filter(Registration.attendance == attendance_filter)
+    if is_attended_filter != 'all':
+        is_attended = is_attended_filter == 'yes'
+        query = query.filter(Registration.is_attended == is_attended)
+    
+    # Order by registration date (assuming id is sequential)
+    query = query.order_by(Registration.id.desc())
+    
+    # Execute query with pagination
+    guests = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Get statistics
+    total_guests = query.count()  # Total filtered guests
+    guests_count = Registration.query.count()  # Total overall guests
+    guest_male = Registration.query.filter_by(gender="ذكر").count()
+    guest_female = Registration.query.filter_by(gender="أنثى").count()
+    guest_attendance = Registration.query.filter_by(attendance="سوف أحضر باذن الله").count()
+    guest_not_attendance = Registration.query.filter_by(attendance="أعتذر عن الحضور").count()
+    guest_is_attended = Registration.query.filter_by(is_attended=True).count()
     children_count = Children.query.count()
-    children_male = Children.query.filter(Children.gender == "ذكر").count()
-    children_female = Children.query.filter(Children.gender == "أنثى").count()
-    
-    # Create form for registration status
-    close_registrations_form = CloseRegistrationForm()
-    close_registrations = app.config["Close_Registrations"]
-    
+    children_male = Children.query.filter_by(gender="ذكر").count()
+    children_female = Children.query.filter_by(gender="أنثى").count()
+
     return render_template(
-        'admin.html',
+        "admin.html",
         guests=guests,
+        total_guests=total_guests,
+        form=form,
+        close_registrations=app.config["Close_Registrations"],
         guests_count=guests_count,
+        guest_male=guest_male,
+        guest_female=guest_female,
         guest_attendance=guest_attendance,
         guest_not_attendance=guest_not_attendance,
         guest_is_attended=guest_is_attended,
-        guest_male=guest_male,
-        guest_female=guest_female,
         children_count=children_count,
         children_male=children_male,
         children_female=children_female,
-        form=close_registrations_form,
-        close_registrations=close_registrations,
+        search_query=search_query,
+        gender_filter=gender_filter,
+        attendance_filter=attendance_filter,
+        is_attended_filter=is_attended_filter
     )
 
 @app.route("/admin/", methods=["POST"])
@@ -771,7 +809,7 @@ def admin_post():
     
     if (request.method == "POST" and "reg_status_form" in request.form 
         and close_registrations_form.validate_on_submit()):
-        app.config["Close_Registrations"] = not close_registrations
+        app.config["Close_Registrations"] = not app.config["Close_Registrations"]
         close_registrations_form.close_status.data = not close_registrations
         flash("تم تغيير حالة التسجيل بنجاح", "success")
         return redirect(url_for("admin"))
@@ -1591,6 +1629,14 @@ def clear_all_data():
         flash(f"حدث خطأ أثناء مسح البيانات: {str(e)}", "error")
     
     return redirect(url_for("admin"))
+
+# ==============================================================================
+@app.context_processor
+def utility_processor():
+    return {
+        'min': min,
+        'max': max  # Also adding max since we might need it
+    }
 
 # ==============================================================================
 if __name__ == "__main__":
