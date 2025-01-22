@@ -1441,7 +1441,7 @@ def confirm_prize(prize_id, reg_no):
 
 # Route for attendence confirmation
 @app.route("/confirm_attendence", methods=["GET", "POST"])
-@role_required(['admin', 'receptionist'])
+# @role_required(['admin', 'receptionist'])
 def confirm_attendence():
     form = RegistrationForm()  # Create an instance of the RegistrationForm
     phone = request.args.get('phone')  # Get phone from query params
