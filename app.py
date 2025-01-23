@@ -1196,7 +1196,7 @@ def edit_prize(id):
 
 
 # Create route for deleting a prize
-@app.route("/prizes/delete/<int:id>")
+@app.route("/prizes/delete/<int:id>", methods=['GET', 'POST', 'DELETE'])
 @role_required(['admin'])
 def delete_prize(id):
     try:
