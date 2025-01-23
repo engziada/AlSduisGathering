@@ -179,7 +179,11 @@
                 </div>
                 <div class="card-body">
                     <h5 class="card-title text-primary mb-3">
-                        {{ guest.first_name }} {{ guest.father_name }} {{ guest.family_name }}
+                        {% if guest.relation %}
+                            {{ guest.first_name }} {{ guest.father_name }} {{ guest.family_name }} ({{ guest.relation }})
+                        {% else %}
+                            {{ guest.first_name }} {{ guest.father_name }} {{ guest.family_name }}
+                        {% endif %}
                     </h5>
                     <div class="mb-2">
                         <small class="text-muted"><i class="fas fa-phone me-2"></i>{{ guest.phone_number }}</small>
@@ -196,11 +200,6 @@
                     <div class="mb-2">
                         <small class="text-muted"><i class="fas fa-calendar-alt me-2"></i>{{ guest.age }}</small>
                     </div>
-                    {% if guest.relation %}
-                    <div class="mb-2">
-                        <small class="text-muted"><i class="fas fa-users me-2"></i>{{ guest.relation }}</small>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="card-footer bg-transparent border-top-0">
                     <div class="d-flex justify-content-between align-items-center">

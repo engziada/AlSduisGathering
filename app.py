@@ -538,7 +538,12 @@ def register(phone_number):
     if request.method == "GET" and registration:
         # Pre-fill form with existing data
         form.first_name.data = registration.first_name
-        form.family_name.data = registration.family_name
+        # Handle family name field
+        if registration.family_name == "السديس":
+            form.family_name.data = "السديس"
+        else:
+            form.family_name.data = "أخرى"
+            form.custom_family_name.data = registration.family_name
         form.father_name.data = registration.father_name
         form.first_grand_name.data = registration.first_grand_name
         form.second_grand_name.data = registration.second_grand_name
@@ -576,7 +581,7 @@ def register(phone_number):
             # Always use the phone number from the URL
             registration.phone_number = phone_number
             registration.first_name = form.first_name.data
-            registration.family_name = form.family_name.data
+            registration.family_name = form.custom_family_name.data if form.family_name.data == "أخرى" else form.family_name.data
             registration.father_name = form.father_name.data
             registration.first_grand_name = form.first_grand_name.data
             registration.second_grand_name = form.second_grand_name.data
